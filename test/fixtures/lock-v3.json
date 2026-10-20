@@ -1,0 +1,18 @@
+{
+  "name": "demo",
+  "lockfileVersion": 3,
+  "packages": {
+    "": {
+      "name": "demo",
+      "dependencies": { "lodash": "^4.17.0", "@scope/pkg": "^1.0.0" },
+      "devDependencies": { "vitest": "^1.0.0" }
+    },
+    "node_modules/lodash": { "version": "4.17.15", "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.15.tgz" },
+    "node_modules/@scope/pkg": { "version": "1.2.0", "resolved": "https://registry.npmjs.org/@scope/pkg/-/pkg-1.2.0.tgz" },
+    "node_modules/vitest": { "version": "1.0.0", "resolved": "https://registry.npmjs.org/vitest/-/vitest-1.0.0.tgz", "dev": true },
+    "node_modules/vitest/node_modules/lodash": { "version": "4.17.21", "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz", "dev": true },
+    "node_modules/leftpad": { "version": "0.0.1", "resolved": "https://registry.npmjs.org/leftpad/-/leftpad-0.0.1.tgz" },
+    "packages/local": { "version": "1.0.0" },
+    "node_modules/local": { "resolved": "packages/local", "link": true }
+  }
+}

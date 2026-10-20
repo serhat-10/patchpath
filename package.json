@@ -1,0 +1,69 @@
+{
+  "name": "patchpath",
+  "version": "0.0.1",
+  "description": "Dependency health for npm, yarn and pnpm lockfiles: known vulnerabilities, deprecations and, for npm, an upgrade plan grouped by the dependency you would bump.",
+  "author": "serhat",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serhat-10/patchpath.git"
+  },
+  "homepage": "https://github.com/serhat-10/patchpath#readme",
+  "bugs": {
+    "url": "https://github.com/serhat-10/patchpath/issues"
+  },
+  "private": true,
+  "type": "module",
+  "bin": {
+    "patchpath": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.tr.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "dependencies",
+    "security",
+    "audit",
+    "osv",
+    "vulnerabilities",
+    "lockfile",
+    "package-lock",
+    "deprecated",
+    "upgrade-plan",
+    "npm"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/semver": "^7.8.0",
+    "semver": "^7.8.5",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5",
+    "yaml": "^2.9.1"
+  }
+}
