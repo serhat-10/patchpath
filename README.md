@@ -200,7 +200,11 @@ Requires Node 22 or newer. `npm run typecheck` runs the type checker.
 
 ## Contributing
 
-Issues and pull requests are welcome once the repository is public. Run `npm run typecheck` and `npm test` before sending a change, add a test for behaviour changes (the tests use fake network responses and never call the real OSV or registry), and add a line under "Unreleased" in [CHANGELOG.md](CHANGELOG.md). Keep the zero-runtime-dependency rule (`semver` is bundled at build time). Report security problems privately, see [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome. Run `npm run typecheck` and `npm test` before sending a change, add a test for behaviour changes (the tests use fake network responses and never call the real OSV or registry), and add a line under "Unreleased" in [CHANGELOG.md](CHANGELOG.md). Keep the zero-runtime-dependency rule (`semver` is bundled at build time). Report security problems privately, see [SECURITY.md](SECURITY.md).
+
+## Built with help of Claude
+
+patchpath was built with the help of [Claude](https://claude.com/claude-code) (Claude Code), Anthropic's AI coding assistant.
 
 ## License
 

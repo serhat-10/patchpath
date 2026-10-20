@@ -200,7 +200,11 @@ Node 22 veya üzeri gerekir. `npm run typecheck` tip denetleyicisini çalıştı
 
 ## Katkı
 
-Depo herkese açık olduktan sonra issue ve pull request'ler memnuniyetle karşılanır. Bir değişiklik göndermeden önce `npm run typecheck` ve `npm test` çalıştırın, davranış değişiklikleri için test ekleyin (testler sahte ağ yanıtları kullanır, gerçek OSV'ye veya registry'ye asla istek atmaz) ve [CHANGELOG.md](CHANGELOG.md)'de "Unreleased" altına bir satır ekleyin. Sıfır çalışma zamanı bağımlılığı kuralını koruyun (`semver` derleme sırasında gömülür). Güvenlik sorunlarını özel olarak bildirin, bkz. [SECURITY.md](SECURITY.md).
+Issue ve pull request'ler memnuniyetle karşılanır. Bir değişiklik göndermeden önce `npm run typecheck` ve `npm test` çalıştırın, davranış değişiklikleri için test ekleyin (testler sahte ağ yanıtları kullanır, gerçek OSV'ye veya registry'ye asla istek atmaz) ve [CHANGELOG.md](CHANGELOG.md)'de "Unreleased" altına bir satır ekleyin. Sıfır çalışma zamanı bağımlılığı kuralını koruyun (`semver` derleme sırasında gömülür). Güvenlik sorunlarını özel olarak bildirin, bkz. [SECURITY.md](SECURITY.md).
+
+## Claude'un yardımıyla geliştirildi
+
+patchpath, Anthropic'in yapay zekâ kodlama asistanı [Claude](https://claude.com/claude-code) (Claude Code) yardımıyla geliştirildi.
 
 ## Lisans
 
