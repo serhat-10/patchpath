@@ -1,0 +1,44 @@
+# Publishes to npm when a GitHub Release is published, using npm trusted
+# publishing (OIDC): no npm token or secret is stored anywhere.
+#
+# Owner setup, not done yet:
+#   1. On npmjs.com open the package page -> Settings -> Trusted Publisher ->
+#      GitHub Actions.
+#   2. Repository: serhat-10/patchpath, workflow file: release.yml.
+#   3. Remove "private": true from package.json and set the final version.
+#
+# Until step 3 is done this workflow fails safely, because npm refuses to
+# publish a package marked "private": true. It never publishes by itself.
+#
+# Requirements per npm docs (docs.npmjs.com/trusted-publishers): npm CLI
+# 11.5.1 or later and Node 22.14.0 or later, GitHub-hosted runner, and the
+# id-token: write permission. Provenance is generated automatically for a
+# public repository and public package; --provenance is passed explicitly too.
+# The package.json repository.url must exactly match the GitHub repository.
+# Not verified end to end: no real publish has been attempted.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@^11.5.1
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm publish --provenance --access public

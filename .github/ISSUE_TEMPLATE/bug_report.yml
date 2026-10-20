@@ -1,0 +1,45 @@
+name: Bug report
+description: Something patchpath does is wrong or confusing
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write in English or Turkish (Türkçe yazabilirsiniz).
+
+        **Before pasting any output, remove private package names and paths** (scoped internal packages, registry URLs, local directories). Do not report security problems here, use the private advisory link instead.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `patchpath --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: lockfile
+    attributes:
+      label: Lockfile type
+      options: [npm (package-lock.json), yarn (yarn.lock), pnpm (pnpm-lock.yaml)]
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: patchpath . --fail-on high
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Paste the output after removing private package names and paths.
+      render: text
+    validations:
+      required: true
