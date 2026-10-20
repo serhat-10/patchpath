@@ -1,0 +1,790 @@
+{
+ "schema": 1,
+ "algorithm": "sha256",
+ "files": {
+  "nodegoat/package-lock.json": {
+   "sha256": "b9ed49893a9d3bcf6fe567cd38fe8168850591e0018f19d3bb0d1f80a4c2eecc",
+   "bytes": 888024
+  },
+  "nodegoat/package.json": {
+   "sha256": "138377cf0f19b955d6ba043e49c24fb5eec4041a789fea5134e1fecda620c829",
+   "bytes": 1979
+  },
+  "nightscout/package-lock.json": {
+   "sha256": "ae3ca27764083d4d9fb3c015a020f81a58365bed90f18f9bd98e32c7678400db",
+   "bytes": 553343
+  },
+  "nightscout/package.json": {
+   "sha256": "7ae06f0d98eedfbaa4f065096ca8f2c5ba90216317712e31d445c202f57a9e4f",
+   "bytes": 5324
+  },
+  "mattermost/package-lock.json": {
+   "sha256": "58e7ff397a9f17e865277691b507fcc9f4bc09cab119a83eb1d128db80561c5f",
+   "bytes": 869358
+  },
+  "mattermost/package.json": {
+   "sha256": "bde6b4458162a203180027621acd8363c4a04e90afe7e740eca9d17f5030c5a1",
+   "bytes": 8347
+  },
+  "bitwarden/package-lock.json": {
+   "sha256": "172d1250a624ab1d88056114d2db19352bca59a9d3ad73483854e5e6d2d67415",
+   "bytes": 3017131
+  },
+  "bitwarden/package.json": {
+   "sha256": "dee2b1b723a03bb4d21b897dae32b93789258817d581d43c777183fa69f9fff5",
+   "bytes": 6768
+  },
+  "parse-server/package-lock.json": {
+   "sha256": "a96875778148547eef76d79c921863a07645eb07a2f77f76f11b31a8b9965d33",
+   "bytes": 491207
+  },
+  "parse-server/package.json": {
+   "sha256": "331b17f6a66bc10a878b451a563a3b0a5deb0f2dd01a865442276569ede73a29",
+   "bytes": 4466
+  },
+  "chartjs/package-lock.json": {
+   "sha256": "bee0868eeb8d5b4e660b39510c5e6fe7aca4ed3d94700916e2a3d3b67cd2ee89",
+   "bytes": 674400
+  },
+  "chartjs/package.json": {
+   "sha256": "f03b1ebf6832e4fffd8dc0dc690ce271a611e0ab950206b1a924971fcb3c081a",
+   "bytes": 3462
+  },
+  "nest/package-lock.json": {
+   "sha256": "84dd1662d83e1f42f4ea88947e666294dcd73eb5db12bf1b415727bf0219c963",
+   "bytes": 833252
+  },
+  "nest/package.json": {
+   "sha256": "f372d5d8b2b1aac8d50500e568e9c4b6238042a8a63c2ee5027f03b962e58a3e",
+   "bytes": 7664
+  },
+  "typescript/package-lock.json": {
+   "sha256": "aa5ec8d552de193d872648cc4af718dd66eefe7f5eadf9b85bae1f172b40b17f",
+   "bytes": 358837
+  },
+  "typescript/package.json": {
+   "sha256": "c16a05bad9d14321d848400ce79cb4ca156e456e76215a444a3fa3c03d264053",
+   "bytes": 3579
+  },
+  "npmcli/package-lock.json": {
+   "sha256": "deb2e887500fa99469c5ba586fb6c017c9b63c3a2638e8fd473847cc95ef1249",
+   "bytes": 627405
+  },
+  "npmcli/package.json": {
+   "sha256": "e6f364162dabaa6c1b725a2b960cc93c495166bcc1eccc3d9afe90582c1fd9f1",
+   "bytes": 6647
+  },
+  "vscode/package-lock.json": {
+   "sha256": "d873cd722fe91f573ffc5a79dbb0868b610bd4f80539333b325da4dac11454e3",
+   "bytes": 701983
+  },
+  "vscode/package.json": {
+   "sha256": "ab15a6fb389952a2988362225e9c24d12070bdbf0c96e9d400322065f7d22083",
+   "bytes": 9414
+  },
+  "ngx-admin/package-lock.json": {
+   "sha256": "bd4b084951e0c6eee8bf37f5b18e3a268de1b3b048d1faf6c2860b0603a05fd5",
+   "bytes": 742735
+  },
+  "ngx-admin/package.json": {
+   "sha256": "16983cb710852e3080cf2d032ea02a9572c8f6ae0387dce892c265ea13e431f5",
+   "bytes": 3605
+  },
+  "mailspring/app/package-lock.json": {
+   "sha256": "c43fc9589a49b6aad8311dae240a7e521e5ab2a2ff6f41e09559f249a42e6c2b",
+   "bytes": 147629
+  },
+  "mailspring/app/package.json": {
+   "sha256": "4e3f5077ebbde56b93bad51a65ee5fcfb9352c6add60b08c86fd65d79de21ff6",
+   "bytes": 2801
+  },
+  "electron-qs/package-lock.json": {
+   "sha256": "a03e8d165ef0d8ad90a3eb886c018be6142e6aca38f5ed908d012a7b92527a23",
+   "bytes": 5734
+  },
+  "electron-qs/package.json": {
+   "sha256": "67e32355f3c79de3e34ba882fa838941988bd835a38295d71f1a66cccac8c7d4",
+   "bytes": 421
+  },
+  "gatsby-blog/package-lock.json": {
+   "sha256": "56a41f6223f5f2c9f1fbc7696289bbe3b817fc042e573dd82eab540f920fa183",
+   "bytes": 1297072
+  },
+  "gatsby-blog/package.json": {
+   "sha256": "af88c5a203de5372968cb36e37df673aa19bc9210f8f29cc678aea00f2435384",
+   "bytes": 1516
+  },
+  "heroku-node/package-lock.json": {
+   "sha256": "ba1792ef551c5eb584433188a022fb7ae581052b4997a9f3c9950ce7e23080a4",
+   "bytes": 190881
+  },
+  "heroku-node/package.json": {
+   "sha256": "915ec7cd0a5b06a8f3c9e5732c9d941365efbf2b57ad152e72adb433080a86d9",
+   "bytes": 583
+  },
+  "jitsi/package-lock.json": {
+   "sha256": "7d15d5771d91394a8f9616fde91f1f8ea8a8f1330661906c5e6199963a8bd6b9",
+   "bytes": 841576
+  },
+  "jitsi/package.json": {
+   "sha256": "35bfc8b7eee52f8034cd245f0b7d6246f9cbd6bc46669c1e589c565b89612fd6",
+   "bytes": 6061
+  },
+  "bookshelf/package-lock.json": {
+   "sha256": "8f7596a5fcf0ff2ac491405dbf8894c09078398355bcafa6924c5039ae47c79f",
+   "bytes": 1367572
+  },
+  "bookshelf/package.json": {
+   "sha256": "81592d4b788b148dc5e26a3d947c4e2ad6a6201b1de93bc08c9eb0ee131b499c",
+   "bytes": 4359
+  },
+  "nextjs-blog/package-lock.json": {
+   "sha256": "d2eb6927ac7516e0db21cfe5c191d8cbf8d5bc1f43b768db8e6e96aa4616aad3",
+   "bytes": 405812
+  },
+  "nextjs-blog/package.json": {
+   "sha256": "f0f15e7587061a17b5962779bd7368e7f7680af81e63f207742bcd1810c9a746",
+   "bytes": 1973
+  },
+  "jhipster-vue/package-lock.json": {
+   "sha256": "6a4a52a37d1e8178980543bdea1487077a34ddfe8003a6572585f7e05f95d7c0",
+   "bytes": 2387319
+  },
+  "jhipster-vue/package.json": {
+   "sha256": "f3b679de442a1c7fdaf6e52a687b3e7d1de7aa0b3cb8cc7a79e3266ca4e069c5",
+   "bytes": 9073
+  },
+  "socketio/package-lock.json": {
+   "sha256": "19178633835d237c5110b0fde4d245118c4826475e73caff716cfbc6853886fa",
+   "bytes": 164176
+  },
+  "socketio/package.json": {
+   "sha256": "e8284ce185700b07340db664e50245b93a196103bbb5ef5defad6116853355f0",
+   "bytes": 2407
+  },
+  "voting-result/result/package-lock.json": {
+   "sha256": "25a12ea483c05e32f0f480a66457428d80ab18461397ea1d6fff864491806116",
+   "bytes": 68438
+  },
+  "voting-result/result/package.json": {
+   "sha256": "731f482530eddc51f91f6aab4c28724ccdb9a3963e0073e090a5db44e180b477",
+   "bytes": 414
+  },
+  "directus/package-lock.json": {
+   "sha256": "1e114dbe3f01016897acbcccb221c94ad7bf976b9185915f3fab1cc0d0dc4ecf",
+   "bytes": 1741097
+  },
+  "directus/package.json": {
+   "sha256": "574f993cfdeb342e569614a0f1e13759336d122c6d82e881104f244b7f8a416b",
+   "bytes": 2377
+  },
+  "prettier/yarn.lock": {
+   "sha256": "66fe31c0fa4116b9e114bdbe8616df8ece3395dcd39722059bcb5d84cbec8e83",
+   "bytes": 369243
+  },
+  "prettier/package.json": {
+   "sha256": "c118b03c3b563a4073d34761878402ea3f42ea5a9ac06e444badb080dff2b94a",
+   "bytes": 5284
+  },
+  "hyper/yarn.lock": {
+   "sha256": "e9086f5efc877cc35260ad1d1cd94271ea9e647c8db29a467e9c76b1250dd035",
+   "bytes": 387871
+  },
+  "hyper/package.json": {
+   "sha256": "cd736c0b97c7d40a3f9ffede233a51c4f27ad1b1b2448885ecc540626d385f2b",
+   "bytes": 4643
+  },
+  "docusaurus/yarn.lock": {
+   "sha256": "d0994f2f3ac7c98065e66be8ea638190d107026443c5f1a49818fab60a2ead1e",
+   "bytes": 943407
+  },
+  "docusaurus/package.json": {
+   "sha256": "01bf908ae759c6fdbe4350916fccce8cc387594df66ab70c901853c5a74c5dbe",
+   "bytes": 5341
+  },
+  "docusaurus/packages/docusaurus/package.json": {
+   "sha256": "249d37f9ba7a4e1d7c1cc2468dff0fd3422d380f8a51052f0a27db50be1157a2",
+   "bytes": 3496
+  },
+  "docusaurus/packages/docusaurus-1.x/package.json": {
+   "sha256": "1a4e6c94dd03e439a7a9eaef186f1b9f68ca0dd6bbf811bc30610fc944870c05",
+   "bytes": 2350
+  },
+  "docusaurus/packages/docusaurus-init/package.json": {
+   "sha256": "8b4da6a581be902fb1e9e19a23384f4b63cda834ad4918397071ffdf966a8757",
+   "bytes": 730
+  },
+  "docusaurus/packages/docusaurus-init/templates/bootstrap/package.json": {
+   "sha256": "9d544a9bc5dc61b2625c43235b7da8c27aebf982dea7387d56c1c9a11b09eb26",
+   "bytes": 782
+  },
+  "docusaurus/packages/docusaurus-init/templates/classic/package.json": {
+   "sha256": "fd9aae55f54314f633e10b072ad16610bb9d78660d430f87076e4853ea4246dd",
+   "bytes": 772
+  },
+  "docusaurus/packages/docusaurus-init/templates/facebook/package.json": {
+   "sha256": "968c5a2493c51aa2699ba195f23c99165098cbc33218f4d96b7e39acaf796655",
+   "bytes": 1461
+  },
+  "docusaurus/packages/docusaurus-init-1.x/package.json": {
+   "sha256": "410f2210f37e170b7263aa6c1c53f83ff5a2bc76e2b905ad3de6cfaca9539821",
+   "bytes": 385
+  },
+  "docusaurus/packages/docusaurus-mdx-loader/package.json": {
+   "sha256": "1815faadf0c8f56ae8726f223f8a0947f065e95d161a5c6fc05748e46e6669b3",
+   "bytes": 866
+  },
+  "docusaurus/packages/docusaurus-migrate/package.json": {
+   "sha256": "30249fbb499f2f9723fbf9a22350ad1093058f5bff853f6717aaf60c4c3cbf6a",
+   "bytes": 1030
+  },
+  "docusaurus/packages/docusaurus-module-type-aliases/package.json": {
+   "sha256": "37655ad715ad4c77751ce47bde7ef34cb59329ef2fee37bbda92a995b449ddd4",
+   "bytes": 230
+  },
+  "docusaurus/packages/docusaurus-plugin-client-redirects/package.json": {
+   "sha256": "81029900c69d032255c1964340c682580498c82ea4d81a88691b289143a9f016",
+   "bytes": 755
+  },
+  "docusaurus/packages/docusaurus-plugin-content-blog/package.json": {
+   "sha256": "1d4d5a7c9cb191ecbf5753ccad7ed53e324cccde4287f821f3f17f4a96541482",
+   "bytes": 905
+  },
+  "docusaurus/packages/docusaurus-plugin-content-docs/package.json": {
+   "sha256": "91070bbbf8a86f71c8f403d662e1bbbe4238bb1dd3a27ee3feb4bc923d23d787",
+   "bytes": 1170
+  },
+  "docusaurus/packages/docusaurus-plugin-content-pages/package.json": {
+   "sha256": "f8d548b4404f55f76651fab998a1dec126e50dff1087bd919d964d3ecbe50806",
+   "bytes": 680
+  },
+  "docusaurus/packages/docusaurus-plugin-debug/package.json": {
+   "sha256": "e15f2de3ab7a282593c4aeaf08fde8d6ea3d2739f299877a343c3b8defadb256",
+   "bytes": 550
+  },
+  "docusaurus/packages/docusaurus-plugin-google-analytics/package.json": {
+   "sha256": "ce74284268670d02658a7b6231f203f92bc78879f72c2e446918ab4a31466bf4",
+   "bytes": 358
+  },
+  "docusaurus/packages/docusaurus-plugin-google-gtag/package.json": {
+   "sha256": "a26e09fdccdbf9212c80285dee98eee4ee93dd613f803c8193f116939ecd15ad",
+   "bytes": 347
+  },
+  "docusaurus/packages/docusaurus-plugin-ideal-image/package.json": {
+   "sha256": "753d80f4d22fb8fef686a0bf70c493536821d78528050977cb50e6f3026afd52",
+   "bytes": 898
+  },
+  "docusaurus/packages/docusaurus-plugin-pwa/package.json": {
+   "sha256": "33dc59a40b22db8adede56f42358515beffde4125854a679e9675e60d418f309",
+   "bytes": 801
+  },
+  "docusaurus/packages/docusaurus-plugin-sitemap/package.json": {
+   "sha256": "62597003387eac6e3bf76c370386cff8dbad0b806c624740a9f5a497613597f7",
+   "bytes": 617
+  },
+  "docusaurus/packages/docusaurus-preset-bootstrap/package.json": {
+   "sha256": "a1d264caa3471d6002bbedd37699ccf5efdef6d37b7016352ee727783a9a88ff",
+   "bytes": 630
+  },
+  "docusaurus/packages/docusaurus-preset-classic/package.json": {
+   "sha256": "99efa3e6bca7f75a2e0e01e50ac8f5c10a62e23cf765ca2a9f9da28b23db4cc4",
+   "bytes": 901
+  },
+  "docusaurus/packages/docusaurus-theme-bootstrap/package.json": {
+   "sha256": "33e3727e86fb94cc1a2d96cb0fc62b65cdcfc5d56997397ea18eaa067bf2fa81",
+   "bytes": 555
+  },
+  "docusaurus/packages/docusaurus-theme-classic/package.json": {
+   "sha256": "1b85a0047beebeb49917ba3b80930334599a098a3f7f22694a7aa8ea4ff57f94",
+   "bytes": 1160
+  },
+  "docusaurus/packages/docusaurus-theme-live-codeblock/package.json": {
+   "sha256": "422fa3274bb7f12fb232a0115a5214ab672cda227a0e354c443faf55d125d386",
+   "bytes": 650
+  },
+  "docusaurus/packages/docusaurus-theme-search-algolia/package.json": {
+   "sha256": "b14e8fb7efd3c8ff898920c07e467a2e0035a2ef98be45406fdd633f7451d0ed",
+   "bytes": 643
+  },
+  "docusaurus/packages/docusaurus-types/package.json": {
+   "sha256": "0fa8d55d4b6fa03eaa1b126aeea70e348cab027cff1f63c30eca16600f2ed09a",
+   "bytes": 400
+  },
+  "docusaurus/packages/docusaurus-utils/package.json": {
+   "sha256": "34595e50fb45e17e0315bfa5c1503dd622ee20857f776e57edfca883996d6aaf",
+   "bytes": 590
+  },
+  "docusaurus/packages/lqip-loader/package.json": {
+   "sha256": "e2050ffb50379979f82640d8f8b0e9be65cee094dcf9ea963f57994a5cdcc917",
+   "bytes": 472
+  },
+  "docusaurus/packages/stylelint-copyright/package.json": {
+   "sha256": "a63e35135c9316a8e0f0a7c177c8c20e8ba1337b9aa6f9466b361377ee942184",
+   "bytes": 240
+  },
+  "docusaurus/website/package.json": {
+   "sha256": "8ab058dbc462e46fac4a6d28b08766d5dc76c607ba374b5014941f71fe04bdba",
+   "bytes": 1784
+  },
+  "docusaurus/website-1.x/package.json": {
+   "sha256": "987907592a997e411120c89a7683652e31277e57997741914b8d3bef70c62dc9",
+   "bytes": 652
+  },
+  "storybook/yarn.lock": {
+   "sha256": "edfd26a64efff1fc26d4d84922004650c536eb6e04cc1dd3fcde939833d18bc8",
+   "bytes": 1437086
+  },
+  "storybook/package.json": {
+   "sha256": "b5db13510277b86f8fc5acb8444fb2b332672c930f3d809642fbaa725b7f7048",
+   "bytes": 9259
+  },
+  "storybook/addons/a11y/package.json": {
+   "sha256": "185d0ccb9f29101d2f113c480f60773f8507370d4dc3fda5be0948d5a11c5ebe",
+   "bytes": 1750
+  },
+  "storybook/addons/actions/package.json": {
+   "sha256": "e84d8e3ef7f6a1e1d192a16704b88987ae95acd4f02ecf47f3b69c5ad413100d",
+   "bytes": 1680
+  },
+  "storybook/addons/backgrounds/package.json": {
+   "sha256": "cab17548d62f2ebdc6b4480bbe95a96177d41f94096e5cf25871ca6f66bd66fa",
+   "bytes": 1512
+  },
+  "storybook/addons/controls/package.json": {
+   "sha256": "f452549805d895dc20eead9a0e7a480047876bf061aa3c77ed31d828d4fc721d",
+   "bytes": 1214
+  },
+  "storybook/addons/cssresources/package.json": {
+   "sha256": "9092614f3b27ae3395f385805c5b44cf03b3815e0b2830e1986c483df58577e2",
+   "bytes": 1541
+  },
+  "storybook/addons/design-assets/package.json": {
+   "sha256": "17abc3b8b774b15200fe9a360d65aa009f4919ab80b20b525b8efb3a87300b56",
+   "bytes": 1464
+  },
+  "storybook/addons/docs/package.json": {
+   "sha256": "4290688d1f3aa540e7c4632d681cb7741066c658d2d328bcfb494d24ce3df7e4",
+   "bytes": 4046
+  },
+  "storybook/addons/essentials/package.json": {
+   "sha256": "e79b5ff6058f55315aa1c279685c75e4d4fae0d0707e7c14f32e92c1320abff9",
+   "bytes": 1618
+  },
+  "storybook/addons/events/package.json": {
+   "sha256": "9a9dbe67d7c13195179dd0f83a112f01c43f714f40044c34350addd8a1645927",
+   "bytes": 1546
+  },
+  "storybook/addons/google-analytics/package.json": {
+   "sha256": "18617b732ded2ded2c450fb3a0e771e32b3294265787da086b9d2f20966129b6",
+   "bytes": 1028
+  },
+  "storybook/addons/graphql/package.json": {
+   "sha256": "1690a57fd38d12c18a496b197f5d79a1040cab0ee47c634870217c46dd05c67d",
+   "bytes": 1417
+  },
+  "storybook/addons/jest/package.json": {
+   "sha256": "c35585054da9b9fb6c3e7cb79992ed9bc639504948c06ab242368a8f883c8dae",
+   "bytes": 1609
+  },
+  "storybook/addons/knobs/package.json": {
+   "sha256": "9429c7dd46fe31d6678a98875e71bff07392f59ad5dc169d82c10afaae77ce1e",
+   "bytes": 1924
+  },
+  "storybook/addons/links/package.json": {
+   "sha256": "5401202f7cb89bad2d3affcd0d886bb887f194bf47a42dbbcd7e3c8450859e2a",
+   "bytes": 1468
+  },
+  "storybook/addons/queryparams/package.json": {
+   "sha256": "680da7184970d98aa20b575a9ecc9beedc86a4eec40aef3374476b43c2581249",
+   "bytes": 1459
+  },
+  "storybook/addons/storyshots/storyshots-core/package.json": {
+   "sha256": "d9e1121e7b39a3b0948ae5ecbbfebd29378c9ea1aacf925d07be242223390979",
+   "bytes": 1972
+  },
+  "storybook/addons/storyshots/storyshots-puppeteer/package.json": {
+   "sha256": "2a7c3043ab8bd1812aebf7809ed9666cc65195a9918d02b2f9c72a70a31f2b3e",
+   "bytes": 1569
+  },
+  "storybook/addons/storysource/package.json": {
+   "sha256": "9b989989c26ef5ea86cd61324e1adce99ea48cb63e1dce064d8404b8c1e28821",
+   "bytes": 1600
+  },
+  "storybook/addons/toolbars/package.json": {
+   "sha256": "19affd2f8f6aefdccc8ae56bea4f06eb8c575a6b471c800eb10ff67d42237ce4",
+   "bytes": 1100
+  },
+  "storybook/addons/viewport/package.json": {
+   "sha256": "7c051a3fc8a89e1ad796245a658b61fa4a061e41fa7d30e8c72fc6f33f6d7752",
+   "bytes": 1422
+  },
+  "storybook/app/angular/package.json": {
+   "sha256": "42bb53efdba2d17d3dd5f94b278f30b8d7915509dd8ffe1600f98f2aac5bd88d",
+   "bytes": 2279
+  },
+  "storybook/app/aurelia/package.json": {
+   "sha256": "37b7fa52e8eb8a387d3be88ddfc60d87a6a96a0589b773b0af262f7933cf3085",
+   "bytes": 1647
+  },
+  "storybook/app/ember/package.json": {
+   "sha256": "cdb46c81cb3ba54e7c7b4ce7ae4310b83a3ba32d57b3224e26207254f0ae6ac3",
+   "bytes": 1457
+  },
+  "storybook/app/html/package.json": {
+   "sha256": "855aa62944a13f222f0be33e7d92a6ada381701823ec39385d8816a3def3a44c",
+   "bytes": 1491
+  },
+  "storybook/app/marionette/package.json": {
+   "sha256": "6814bde9d511d834af60d9f97ca2165109d93087b728f72050919323801b91a4",
+   "bytes": 1354
+  },
+  "storybook/app/marko/package.json": {
+   "sha256": "c540f27448e07f1ba3126fc213ef809e94353c6bce77db60d09f2d20f623fa2a",
+   "bytes": 1395
+  },
+  "storybook/app/mithril/package.json": {
+   "sha256": "ee6f21f038d1bfa88efb1f32b3f9f7eaa4d28d5281e1bc7e0e0fc5a21de708b2",
+   "bytes": 1651
+  },
+  "storybook/app/preact/package.json": {
+   "sha256": "924c6a8933063f6c7c480525c91549ad08a2ce5f1e6c3f4fc7fc3102db8aecf0",
+   "bytes": 1592
+  },
+  "storybook/app/rax/package.json": {
+   "sha256": "4fa5c4c600e3e5922b3fcc57eac8f757794157252d133fd1509cd5b009deddea",
+   "bytes": 1359
+  },
+  "storybook/app/react/package.json": {
+   "sha256": "7ec726382b087113ce61dc6adddef6328581ed0c3b7319c53229b617907be5c2",
+   "bytes": 2103
+  },
+  "storybook/app/riot/package.json": {
+   "sha256": "e974344745c2617f307809cf98ea55bf1fa90fe8e1f74898cd62923ae386942c",
+   "bytes": 1676
+  },
+  "storybook/app/server/package.json": {
+   "sha256": "b819cabbbd47fb50330fd4308266f1b74a220598406d48f9d3608d6522399f41",
+   "bytes": 1474
+  },
+  "storybook/app/svelte/package.json": {
+   "sha256": "f83ec3fe126f467fec101331138add5cb25d07f75af31f03314848bdd34ea6b6",
+   "bytes": 1615
+  },
+  "storybook/app/vue/package.json": {
+   "sha256": "7d82d6ffc71d55570a749e97345cf4d3e9d65953478bb96492b1fd00012f9d25",
+   "bytes": 1874
+  },
+  "storybook/app/web-components/package.json": {
+   "sha256": "08577dcb570d1934cb0718cafac36ef0eec45e9b1246192937325d2f1f3efa70",
+   "bytes": 1822
+  },
+  "storybook/dev-kits/addon-decorator/package.json": {
+   "sha256": "3264d76367046ef8fd2429d4863eb69fe2ef3565595c8078cc327b81cd742737",
+   "bytes": 993
+  },
+  "storybook/dev-kits/addon-parameter/package.json": {
+   "sha256": "6f4050d6c17c83afca9d9a86947b10a3ac35571566699b194657cead197748ab",
+   "bytes": 1207
+  },
+  "storybook/dev-kits/addon-preview-wrapper/package.json": {
+   "sha256": "5e0f3507106ca39082a2b55a553a6d4359d9e88dde32e8901c063df764aa1745",
+   "bytes": 930
+  },
+  "storybook/dev-kits/addon-roundtrip/package.json": {
+   "sha256": "1e9826ddca8096cd515bc6be5f3202a02115c3dbf8aa3a86f088865476b622cb",
+   "bytes": 1248
+  },
+  "storybook/examples/angular-cli/package.json": {
+   "sha256": "d81352e6b2be1d6ff47b11c2c3c5aad5c9990532f026c114e2bfc627fcdc62cc",
+   "bytes": 2429
+  },
+  "storybook/examples/aurelia-kitchen-sink/package.json": {
+   "sha256": "6938a9c75b5e92d22fd5d221667600d83c2dbee1bfa7be230eddbcb8fe7fb433",
+   "bytes": 1584
+  },
+  "storybook/examples/cra-kitchen-sink/package.json": {
+   "sha256": "e406db897cf8c8b700741da397b131436ee64e96df9d6739d9762f8a8d5acc8c",
+   "bytes": 1252
+  },
+  "storybook/examples/cra-react15/package.json": {
+   "sha256": "345d7a8fcd614b69be3b7dd0c2bde7156eaa64ab71e04aabc884bd04b33aa79f",
+   "bytes": 884
+  },
+  "storybook/examples/cra-ts-essentials/package.json": {
+   "sha256": "d473418ef1d121b3730e5c9746896f3ba3dd92b4aee0087ecdd9b78ded85e735",
+   "bytes": 1148
+  },
+  "storybook/examples/cra-ts-kitchen-sink/package.json": {
+   "sha256": "33894d6f831425094e4beaa6c8ad9d5626688486f48e9c74c61f4c7053c63d2e",
+   "bytes": 1574
+  },
+  "storybook/examples/dev-kits/package.json": {
+   "sha256": "648997e632680dc850cc9e668e16fc488173ceaaf4dc78691bd8d59ed610c334",
+   "bytes": 1598
+  },
+  "storybook/examples/ember-cli/package.json": {
+   "sha256": "808122af91b57f34daa8c2ddcf36d9fb8d0a610bee482908d782da1d249a1aad",
+   "bytes": 1948
+  },
+  "storybook/examples/html-kitchen-sink/package.json": {
+   "sha256": "610e084454f09834714106b35e219caba068a1b4b853f09a7d1d5369cbcca17e",
+   "bytes": 1478
+  },
+  "storybook/examples/marko-cli/package.json": {
+   "sha256": "fcdcf3b1122e79ff480f5e10d47eee4f61e5255b0383656aabe2a16c6ef44205",
+   "bytes": 1221
+  },
+  "storybook/examples/mithril-kitchen-sink/package.json": {
+   "sha256": "f5fd555bf59848a6531e1e0b967befedb5249e6bbce7d18380c04e99847a7df0",
+   "bytes": 878
+  },
+  "storybook/examples/official-storybook/package.json": {
+   "sha256": "0ebcaf0806c590ac6899f873944f764ab0ac4b4d2a7473878e83e5284fc0004b",
+   "bytes": 3097
+  },
+  "storybook/examples/preact-kitchen-sink/package.json": {
+   "sha256": "f02e67a6476886a9704653b1a9e39eaa9d72fdb86f731668cc294296d54b5809",
+   "bytes": 1374
+  },
+  "storybook/examples/rax-kitchen-sink/package.json": {
+   "sha256": "edfd109146944bee7da93ce039534995dee122caae528c868f5e6dbeb4c61228",
+   "bytes": 1416
+  },
+  "storybook/examples/react-ts/package.json": {
+   "sha256": "660cdd249af5b35d47856567801d9e1f126934aec2e2ca69379f20564dd5a18c",
+   "bytes": 849
+  },
+  "storybook/examples/riot-kitchen-sink/package.json": {
+   "sha256": "b5a10cff204c190ed9462419f2b15ce2747ca0a6d3a017481219b8d47d20a034",
+   "bytes": 1355
+  },
+  "storybook/examples/server-kitchen-sink/package.json": {
+   "sha256": "28b6ba3fa816d1604a1601f2ef5d29114bfc76a1d70f1db81299b3b53c7db02e",
+   "bytes": 947
+  },
+  "storybook/examples/standalone-preview/package.json": {
+   "sha256": "cd72aa4d9681cc9893d1ad7fdbea4c676fce7a99be75020987223a3684847003",
+   "bytes": 300
+  },
+  "storybook/examples/svelte-kitchen-sink/package.json": {
+   "sha256": "cc59267c869719b1dc3c851cc1e07c51bb52e68fc0b2c081174f9a36ea12b522",
+   "bytes": 961
+  },
+  "storybook/examples/vue-cli/package.json": {
+   "sha256": "155508cfebcf8841d65a4b1d1d92fd4c12f3b0e4777452d3f97abf8758d197f1",
+   "bytes": 861
+  },
+  "storybook/examples/vue-kitchen-sink/package.json": {
+   "sha256": "e50d0844935498e1573520329363a95f9001cd47cd529e3a9de2a92f70dda652",
+   "bytes": 1471
+  },
+  "storybook/examples/web-components-kitchen-sink/package.json": {
+   "sha256": "6f36827ff29542242e2cff12f907723986a4b0c457260e48e30774e9bf10117f",
+   "bytes": 1371
+  },
+  "storybook/lib/addons/package.json": {
+   "sha256": "81ea31080f5f00bd009ce7b6f1ec599e48450cb9cb0c9a96c05c1ae2c3c6b8cf",
+   "bytes": 1304
+  },
+  "storybook/lib/api/package.json": {
+   "sha256": "94e93d5bad0bfe4f65e92abdc7dba97d7d03260933b358592f1ef79ef3acc6b3",
+   "bytes": 1803
+  },
+  "storybook/lib/channel-postmessage/package.json": {
+   "sha256": "f1fe754c40351a00edbf4f87a0f2e4a45af329a3af99f9008a6c767a323716dc",
+   "bytes": 1133
+  },
+  "storybook/lib/channel-websocket/package.json": {
+   "sha256": "2a44b67db08a7e3a228f2263faad8f3fc9348ba1945c15b9b5b895ba0a2b95a0",
+   "bytes": 1015
+  },
+  "storybook/lib/channels/package.json": {
+   "sha256": "2b1ce69970a9d0bd6ecfc92dd7189ef5c67b84338fcab985fb244bef6c883028",
+   "bytes": 955
+  },
+  "storybook/lib/cli/package.json": {
+   "sha256": "7dd6c0ef4a20679785e63b4cb34a31df8ca02b09fcdc61cd0d5f6314a11ecd0c",
+   "bytes": 2187
+  },
+  "storybook/lib/cli-sb/package.json": {
+   "sha256": "53113294aa529712783ece85e485d341262820d6f2fa13ffc23d857aa26ec2db",
+   "bytes": 695
+  },
+  "storybook/lib/cli-storybook/package.json": {
+   "sha256": "56256f697949b101944fe6f7fcbff775ee19298cf8f3585b83cb0a72aebc6c4d",
+   "bytes": 733
+  },
+  "storybook/lib/client-api/package.json": {
+   "sha256": "027322edaedac9eb831f1a1ab04979b6f1714faa678ee8991dfda383c77d92eb",
+   "bytes": 1520
+  },
+  "storybook/lib/client-logger/package.json": {
+   "sha256": "9034d0f740cb5070c60cf2f691ea3b1981caf419f10637a2c841b146cdd06215",
+   "bytes": 935
+  },
+  "storybook/lib/codemod/package.json": {
+   "sha256": "5e06bc119666ce9ebfd587ae6c34450a98a28dfd4e86503f67c04dd61ac0cd3b",
+   "bytes": 1259
+  },
+  "storybook/lib/components/package.json": {
+   "sha256": "9e6e82536a6528d863a1222d9ab31614ebdfd7b1243844411f97ce10ee2b9747",
+   "bytes": 1835
+  },
+  "storybook/lib/core/package.json": {
+   "sha256": "03bcbc1543cd20efd9f9e7715bc591008cf36e262e9c3452a34ed3adf349f388",
+   "bytes": 4558
+  },
+  "storybook/lib/core-events/package.json": {
+   "sha256": "20e6b8df3e6f7a15d05561146d3e1379db605905f1533971286001fc49de29be",
+   "bytes": 939
+  },
+  "storybook/lib/node-logger/package.json": {
+   "sha256": "9a5c7d33bb763979378e7478de111693fda3db0d02acc1847cd3f61c022467ca",
+   "bytes": 1079
+  },
+  "storybook/lib/postinstall/package.json": {
+   "sha256": "f0f43c5d27ef29ed8572edf81af9a505a40ed6771ae4878cf8d890c30741ccf7",
+   "bytes": 1084
+  },
+  "storybook/lib/router/package.json": {
+   "sha256": "74e48f66e755c08facd4081e4a5aa6806ed274dbdc5ac8b44a039f20672ef512",
+   "bytes": 1123
+  },
+  "storybook/lib/source-loader/package.json": {
+   "sha256": "46d956eb104fa952a5cdc2f4dbe5f353b3093ce9aba4674cecb58333ce51f64e",
+   "bytes": 1207
+  },
+  "storybook/lib/theming/package.json": {
+   "sha256": "5391dfe7edcca4e6fd17346378734ed9e8197d35771056eaa008c2d2e3d4b168",
+   "bytes": 1348
+  },
+  "storybook/lib/ui/package.json": {
+   "sha256": "65e57346e0d4cae065699bdde7494db459b5aa89014063434f98abfdd9c16646",
+   "bytes": 2313
+  },
+  "babel/yarn.lock": {
+   "sha256": "b14bee9d1e5918b7ec1d84e28d27494bbaa5def6fef79a9faabcaf2728bfb333",
+   "bytes": 468842
+  },
+  "babel/package.json": {
+   "sha256": "c6d207359b5eb371a24799a64ca92c4cdcca7f9b64c7b2cd2f2f819a39129141",
+   "bytes": 3074
+  },
+  "material-ui/yarn.lock": {
+   "sha256": "54f1d5770270168fec8ece2888929976aca63a42ecd7134f6b8348b4173751c0",
+   "bytes": 732501
+  },
+  "material-ui/package.json": {
+   "sha256": "3f9019d8ae2dba7b04b5e3705e9b7f990cefa91f468781af4f28f40df50b63df",
+   "bytes": 8141
+  },
+  "material-ui/docs/package.json": {
+   "sha256": "8c80bcd01af9e2adcffaee6a78e943e05a42d88e629dfdd3d0b5b04ce50b1d10",
+   "bytes": 4247
+  },
+  "material-ui/framer/package.json": {
+   "sha256": "7783827ccd798e77faa8735fc45b4b1044dec3f2d394398cc2835b3f86974326",
+   "bytes": 1072
+  },
+  "material-ui/packages/babel-plugin-unwrap-createstyles/package.json": {
+   "sha256": "9536351670e4e2109bfb1686c395959e06bda21edaf3bca67465dd3b9235d8ce",
+   "bytes": 512
+  },
+  "material-ui/packages/eslint-plugin-material-ui/package.json": {
+   "sha256": "8215151333fa3d06e87a2a49a0eea68012be04ab0188ffafa5bce11c16614687",
+   "bytes": 596
+  },
+  "material-ui/packages/material-ui/package.json": {
+   "sha256": "e6c4b6fc0e7dab3c9ee1ee4cb6e7e507a2f31a77251c03ac1567a6cc942e8dcb",
+   "bytes": 2405
+  },
+  "material-ui/packages/material-ui-benchmark/package.json": {
+   "sha256": "07c05fbcd0f360628a19eb5e3512b08b0ab8584f6665aca5403cd7e585e26b30",
+   "bytes": 1564
+  },
+  "material-ui/packages/material-ui-codemod/package.json": {
+   "sha256": "88e1fb8567ad71513ebedbe1c28ba444b6541ea2fc1a7d992d5ce7cba192c1c3",
+   "bytes": 1134
+  },
+  "material-ui/packages/material-ui-docs/package.json": {
+   "sha256": "085f41622a631880709ec20f7b6f3d146949ee6bf286726b1c67a0c7de81d43e",
+   "bytes": 1504
+  },
+  "material-ui/packages/material-ui-icons/package.json": {
+   "sha256": "25ba108e61138dfdc0fd6a685e50e0ed81bc41e83bbf363159f6311ca6420db0",
+   "bytes": 2477
+  },
+  "material-ui/packages/material-ui-lab/package.json": {
+   "sha256": "7a21b6a079a9fdb3a6dc32ef05793aac37795075a64899203fa15681386882b3",
+   "bytes": 1866
+  },
+  "material-ui/packages/material-ui-styles/package.json": {
+   "sha256": "408dd333fc68b37c1f3e7fac6b87150702e7c4f9fd15e4bc9dcff611dfe43d53",
+   "bytes": 2254
+  },
+  "material-ui/packages/material-ui-system/package.json": {
+   "sha256": "3380e2bd5ec02a3cce85b301cbaf837ecbe0cd0fa4c9513be27530af5d17063d",
+   "bytes": 1826
+  },
+  "material-ui/packages/material-ui-types/package.json": {
+   "sha256": "864ffcaf13fab9bf4d123aab80bac81730b7b83e6d13bbf2d2f51ede5de96ae4",
+   "bytes": 1107
+  },
+  "material-ui/packages/material-ui-utils/package.json": {
+   "sha256": "e44cb6ef06325686990415285e5ec3b61b1794431a5056cbd9ab4eee8c886352",
+   "bytes": 1704
+  },
+  "material-ui/packages/typescript-to-proptypes/package.json": {
+   "sha256": "3d9a5e52522eba597c31798e2728631d8f3b0e367da778653aed60a8b3d3a705",
+   "bytes": 1487
+  },
+  "vuecore/pnpm-lock.yaml": {
+   "sha256": "825602360bede577082f90eeae74f89dcb7900b7aa1a2f5cbaa3ce48c8a79e80",
+   "bytes": 208569
+  },
+  "vuecore/package.json": {
+   "sha256": "f66a82b3e09442710d59510eb0cee491ffb45cf98889fcf1871b1c3bdc81a1a2",
+   "bytes": 5245
+  },
+  "vite/pnpm-lock.yaml": {
+   "sha256": "da18eec0a44c9c5812f6b701d4a86c878eb65f640f999610038bb3bdddf8c0ea",
+   "bytes": 415424
+  },
+  "vite/package.json": {
+   "sha256": "13c4fc26a751bd3d18eb5abe71ce1d20c12a3d3c3d43a05843ac31fc8bdb8ac5",
+   "bytes": 3756
+  },
+  "svelte-kit/pnpm-lock.yaml": {
+   "sha256": "0d79304a69eebb619d8142030d1d093564169da139fe5a468768b9c471699cb9",
+   "bytes": 234078
+  },
+  "svelte-kit/package.json": {
+   "sha256": "1275b9e0bb66ee7e796e74ffe290cfb58429f28ffa703a23baa9d0b057a2afc6",
+   "bytes": 1377
+  },
+  "shadcn-ui/pnpm-lock.yaml": {
+   "sha256": "a7e9b8e1a27de33beed06d90ab0538e1e9b075a4d21e342343692ab8e5319fda",
+   "bytes": 512731
+  },
+  "shadcn-ui/package.json": {
+   "sha256": "020e2b3df0f40e46e4ca7603bd8de985f7369b9f7ef73eb87c814ae969cabca8",
+   "bytes": 2344
+  },
+  "tanstack-query/pnpm-lock.yaml": {
+   "sha256": "4aac9ec908fd5b120387a7d3ea7a2eb90d688de6a394f1adb2e900ceb9386af4",
+   "bytes": 1383773
+  },
+  "tanstack-query/package.json": {
+   "sha256": "a241b11369f4afd19292e2248b3f77c0916fa6761135f3630e0b5c77ebc87e58",
+   "bytes": 3385
+  },
+  "vitesse/pnpm-lock.yaml": {
+   "sha256": "2b64085998bcab6147f2cc1e89c518451b65b06971d9257658ea4b7ffa21ca13",
+   "bytes": 379298
+  },
+  "vitesse/package.json": {
+   "sha256": "64d0c29c2eeb94603975277922ca92a9c8b5c1f0d036444ed6264a9910fbcfb9",
+   "bytes": 2386
+  }
+ }
+}

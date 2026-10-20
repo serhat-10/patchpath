@@ -1,0 +1,13 @@
+{
+ "patchpathVersion": "0.0.1",
+ "node": "v24.18.0",
+ "platform": "win32",
+ "startedAt": "2026-10-20T17:09:15.171Z",
+ "variants": [
+  "default",
+  "nodev",
+  "assume-public"
+ ],
+ "cache": false,
+ "finishedAt": "2026-10-20T17:42:55.892Z"
+}
