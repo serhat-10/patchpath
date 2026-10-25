@@ -8,7 +8,7 @@ patchpath does **not patch the code** of your dependencies (unlike tools such as
 
 The Turkish translation, [README.tr.md](README.tr.md), is meant to say the same thing; if the two differ, this English version is authoritative.
 
-> Status: early MVP (v0.0.1). Reads `package-lock.json`, and `yarn.lock` (yarn v1) and `pnpm-lock.yaml` (lockfile v9) without the upgrade plan (see [Lockfiles](#lockfiles)). Not published to npm yet, so build and run it from a checkout (see [Install](#install)).
+> Status: early release (v0.1.0). Reads `package-lock.json`, and `yarn.lock` (yarn v1) and `pnpm-lock.yaml` (lockfile v9) without the upgrade plan (see [Lockfiles](#lockfiles)). Install from npm or build from a checkout (see [Install](#install)).
 
 ## Why, and what it does not do
 
@@ -22,7 +22,14 @@ It is **not a new vulnerability database**. The advisories come from [OSV](https
 
 ## Install
 
-Not on npm yet. From a checkout (Node 22 or newer):
+Node 22 or newer. Run it without installing:
+
+```
+npx patchpath            # scan the current directory
+npx patchpath ./my-app   # scan another project
+```
+
+Or install it globally with `npm install -g patchpath`. To build from a checkout instead:
 
 ```
 git clone https://github.com/serhat-10/patchpath.git

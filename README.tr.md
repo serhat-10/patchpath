@@ -6,7 +6,7 @@ Tek komut, tek rapor: npm projeniz için bilinen zafiyetler, kullanımdan kaldı
 
 patchpath bağımlılıklarınızın **kodunu yamalamaz** (patch-package gibi araçlardan farklı olarak); yükseltme yolunu ve izlenecek komutları önerir.
 
-> Durum: erken MVP (v0.0.1). `package-lock.json` dosyasını okur; `yarn.lock` (yarn v1) ve `pnpm-lock.yaml` (lockfile v9) dosyalarını ise yükseltme planı olmadan okur ([Lockfile'lar](#lockfilelar)). Henüz npm'de yayınlanmadı; bu yüzden depodan derleyip çalıştırın ([Kurulum](#kurulum)).
+> Durum: erken sürüm (v0.1.0). `package-lock.json` dosyasını okur; `yarn.lock` (yarn v1) ve `pnpm-lock.yaml` (lockfile v9) dosyalarını ise yükseltme planı olmadan okur ([Lockfile'lar](#lockfilelar)). npm'den kurabilir veya depodan derleyebilirsiniz ([Kurulum](#kurulum)).
 
 Bu belge İngilizce [README.md](README.md) ile aynı içeriği taşır; ikisi arasında fark görürseniz İngilizce sürüm esastır.
 
@@ -22,7 +22,14 @@ Bu belge İngilizce [README.md](README.md) ile aynı içeriği taşır; ikisi ar
 
 ## Kurulum
 
-Henüz npm'de yok. Depodan (Node 22 veya üzeri):
+Node 22 veya üzeri. Kurmadan çalıştırın:
+
+```
+npx patchpath            # bulunduğunuz dizini tara
+npx patchpath ./my-app   # başka bir projeyi tara
+```
+
+Ya da `npm install -g patchpath` ile genel olarak kurun. Depodan derlemek için:
 
 ```
 git clone https://github.com/serhat-10/patchpath.git

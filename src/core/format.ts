@@ -97,6 +97,15 @@ export function formatText(report: Report, { color = false } = {}): string {
       .map((s) => severityColor[s](`${sev[s]} ${s}`));
     const noun = vulnTotal === 1 ? "known vulnerability" : "known vulnerabilities";
     lines.push(`${vulnTotal} ${noun} in ${plural(summary.vulnerablePackages, "package")}: ${parts.join(", ")}`);
+    if (summary.external > 0) {
+      // The warnings sit at the end of a long report: say it here, next to the number it qualifies.
+      const pct = Math.round((summary.external / summary.packages) * 100);
+      lines.push(
+        c.yellow(
+          `${summary.external} of ${summary.packages} packages (${pct}%) ${summary.external === 1 ? "was" : "were"} not checked, so the list may be incomplete (see warnings).`,
+        ),
+      );
+    }
   }
   if (summary.malicious) lines.push(c.bold(c.red(plural(summary.malicious, "malicious package"))));
   if (summary.deprecated > 0) lines.push(c.yellow(plural(summary.deprecated, "deprecated package")));

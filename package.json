@@ -1,6 +1,6 @@
 {
   "name": "patchpath",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Dependency health for npm, yarn and pnpm lockfiles: known vulnerabilities, deprecations and, for npm, an upgrade plan grouped by the dependency you would bump.",
   "author": "serhat",
   "license": "MIT",
@@ -12,7 +12,6 @@
   "bugs": {
     "url": "https://github.com/serhat-10/patchpath/issues"
   },
-  "private": true,
   "type": "module",
   "bin": {
     "patchpath": "dist/cli.js"

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 - 2026-10-25
 
 ### Added
 - yarn v1 lockfiles (`yarn.lock`), detection side only: vulnerabilities, deprecations, lag, `via`, direct/dev
@@ -85,6 +85,7 @@
 - Node 20 is no longer supported (end of life); Node 22+ is required.
 - An all-clear is no longer printed when some packages were not checked; the text says how many were
   skipped, and the warning says how to check them.
+- When vulnerabilities are listed and some packages were not checked, the line under the count now says how many (for example "2849 of 3141 packages (91%) were not checked"), instead of leaving it to the warnings at the end.
 
 ### Documentation
 - Privacy (README, README.tr, SECURITY): the peer ERESOLVE prediction asks `registry.npmjs.org` for the

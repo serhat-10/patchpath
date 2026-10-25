@@ -148,4 +148,21 @@ describe("nothing was checked", () => {
   it("keeps the 'in the K checked packages' wording when some were checked", () => {
     expect(formatText(unchecked(5, 2))).toContain("No known vulnerabilities in the 3 checked packages; 2 were not checked (see warnings).");
   });
+
+  it("says right under the vulnerability count how much was not checked", () => {
+    const r = unchecked(3141, 2849);
+    r.summary.vulnerabilities.high = 48;
+    r.summary.vulnerablePackages = 18;
+    const lines = formatText(r).split("\n");
+    const head = lines.findIndex((l) => l.includes("48 known vulnerabilities in 18 packages"));
+    expect(head).toBeGreaterThan(-1);
+    expect(lines[head + 1]).toBe("2849 of 3141 packages (91%) were not checked, so the list may be incomplete (see warnings).");
+  });
+
+  it("stays quiet about coverage when everything was checked", () => {
+    const r = unchecked(10, 0);
+    r.summary.vulnerabilities.high = 1;
+    r.summary.vulnerablePackages = 1;
+    expect(formatText(r)).not.toContain("were not checked");
+  });
 });
