@@ -1,6 +1,6 @@
 # Which dependency do I bump? Measuring an upgrade planner for npm on 34 real lockfiles
 
-*Numbers are from one benchmark run on patchpath 0.0.1, October 2026.*
+*Numbers are from one benchmark run on patchpath 0.0.1 (commit 9a353a5), October 2026. Since that run the published versions 0.1.0 and 0.1.1 changed only the report headline (see Honest limits) and dropped source maps from the package; the scanning and planning code is the same.*
 
 ## The problem
 
@@ -83,11 +83,11 @@ Some other observations from the same run:
 
 ## Honest limits
 
-**The 79 false negatives.** All 79 (nest 19, ngx-admin 14, directus 46) have the same cause, which I checked with a script for every one: the same `name@version` appears in the lockfile both with and without a `resolved` URL. patchpath merges the two, the entry without a URL wins, and the version is counted as "not checked". That is fail-closed by design (a package with no URL could be private, so its name is not sent anywhere), and it is not silent: the names appear in the "N packages were not checked" warning. With `--assume-public` the count drops to 0. It is still a miss, and the merge should prefer the resolved entry.
+**The 79 false negatives.** All 79 (nest 19, ngx-admin 14, directus 46) have the same cause, which I checked with a script for every one: the same `name@version` appears in the lockfile both with and without a `resolved` URL. patchpath merges the two, the entry without a URL wins, and the version is counted as "not checked". That is fail-closed by design (a package with no URL could be private, so its name is not sent anywhere), and it is not silent: the names appear in the "N packages were not checked" warning. With `--assume-public` the count drops to 0. It is still a miss. I considered letting the resolved copy vouch for the other one, and decided against it: that would loosen a privacy rule to gain recall, and `--assume-public` already closes the gap for people who know their lockfile is public.
 
 **The extra `nodev` misses.** Of the 87, 60 are the same cause as above. The other 27 are in Nightscout, where patchpath's reachability check treats some entries as non-production that the reference counts as production. I believe patchpath is right there, but I only checked two packages by hand, so I counted them as misses.
 
-**A misleading headline.** On directus, the report starts with "48 known vulnerabilities in 18 packages", while 2849 of its 3141 packages (91%) were not checked. The warning that says so is at the end of a long report. nest and ngx-admin show the same pattern on a smaller scale. That is a known UX problem and I plan to fix it by putting the unchecked count in the headline. (pnpm scans without `--assume-public` already say "Nothing was checked ... This is not a clean result" instead of reporting zero.)
+**A misleading headline.** On directus, the report starts with "48 known vulnerabilities in 18 packages", while 2849 of its 3141 packages (91%) were not checked. The warning that says so is at the end of a long report. nest and ngx-admin show the same pattern on a smaller scale. That was a UX problem, and it is fixed since 0.1.0: when vulnerabilities are listed and some packages were not checked, the line under the count now says so, for example "2849 of 3141 packages (91%) were not checked, so the list may be incomplete". (pnpm scans without `--assume-public` already say "Nothing was checked ... This is not a clean result" instead of reporting zero.)
 
 **Worse than `npm audit fix` in 2 of 10 projects.** In socketio and nightscout the non-breaking step left more open than `npm audit fix` did. The plan is an estimate and npm's resolver sometimes does better.
 
@@ -101,15 +101,13 @@ Some other observations from the same run:
 
 ## Try it
 
-patchpath is not on npm yet. From a checkout, with Node 22 or newer:
+With Node 22 or newer:
 
 ```
-git clone https://github.com/serhat-10/patchpath.git
-cd patchpath
-npm install
-npm run build
-node dist/cli.js ./my-app
+npx patchpath ./my-app
 ```
+
+The source is at https://github.com/serhat-10/patchpath (MIT).
 
 Add `--json` for machine-readable output, `--no-dev` to skip development-only packages, and `--fail-on high` for CI.
 
