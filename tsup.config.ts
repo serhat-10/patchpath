@@ -6,7 +6,7 @@ export default defineConfig({
   target: "node22",
   dts: { entry: { index: "src/index.ts" } },
   clean: true,
-  sourcemap: true,
+  sourcemap: false,
   // semver and yaml are devDependencies bundled into dist, so the published package has no runtime dependencies.
   noExternal: ["semver", "yaml"],
   // yaml's Node build is CommonJS and requires the built-ins "process" and "buffer"; an ESM bundle

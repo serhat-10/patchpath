@@ -1,6 +1,6 @@
 {
   "name": "patchpath",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dependency health for npm, yarn and pnpm lockfiles: known vulnerabilities, deprecations and, for npm, an upgrade plan grouped by the dependency you would bump.",
   "author": "serhat",
   "license": "MIT",

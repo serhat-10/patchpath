@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 - 2026-10-25
+
+### Changed
+- The published package no longer contains source maps (`dist/*.map`): about 0.9 MB less unpacked. The CLI and the library behave the same.
+
 ## 0.1.0 - 2026-10-25
 
 ### Added
