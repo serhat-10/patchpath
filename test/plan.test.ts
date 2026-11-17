@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +21,7 @@ interface Advisory {
   fixed?: string;
   severity?: string;
 }
-type Versions = Record<string, { dependencies?: Record<string, string>; deprecated?: string }>;
+type Versions = Record<string, { dependencies?: Record<string, string>; peerDependencies?: Record<string, string>; deprecated?: string }>;
 
 let registry: Record<string, { latest?: string; versions: Versions }> = {};
 let advisories: Advisory[] = [];
@@ -412,5 +412,383 @@ describe("fetchPackageDeps cache", () => {
     // The report's own entry is untouched: fetchPackageInfo still downloads its slim record.
     await fetchPackageInfo("qs", cache);
     expect(requests.filter((r) => r.includes("registry.npmjs.org"))).toHaveLength(2);
+  });
+});
+
+describe("upgrade plan: one transitive package shared by two direct dependencies", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "patchpath-shared-"));
+    copyFileSync(join(__dirname, "fixtures", "shared-transitive", "package-lock.json"), join(dir, "package-lock.json"));
+    requests = [];
+    broken = new Set();
+    advisories = [{ id: "GHSA-shared", name: "shared", fixed: "1.2.0" }];
+    registry = {
+      alpha: {
+        versions: {
+          "1.0.0": { dependencies: { shared: "^1.0.0" } },
+          "1.1.0": { dependencies: { shared: "^1.2.0" } },
+        },
+      },
+      // beta has no release that leaves the vulnerable range.
+      beta: { versions: { "1.0.0": { dependencies: { shared: "~1.0.0" } } } },
+      shared: { versions: { "1.0.0": {}, "1.0.5": {}, "1.2.0": {} } },
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps the advisory open and shows the path through the dependency that is not upgraded", async () => {
+    const report = await scan(dir, { cache: false });
+    const entry = report.plan.find((e) => e.name === "alpha");
+    expect(entry).toMatchObject({ status: "upgrade", target: "1.1.0", clears: { count: 0 } });
+    expect(entry?.remaining).toMatchObject([{ id: "GHSA-shared", package: "shared@1.0.0" }]);
+    expect(entry?.paths).toMatchObject({ fixed: 1, remaining: 1 });
+    expect(entry?.stillReachedVia).toEqual(["beta"]);
+    expect(report.planSummary).toEqual({
+      pathsTotal: 2,
+      pathsFixed: 1,
+      pathsRemaining: 1,
+      advisoriesTotal: 1,
+      advisoriesEliminated: 0,
+    });
+    const text = formatText(report);
+    expect(text).toContain("alpha 1.0.0 -> 1.1.0: removes 1 of 2 vulnerable paths, clears no advisory");
+    expect(text).toContain("still open: shared@1.0.0");
+    expect(text).toContain("still reached through: beta");
+    expect(text).toContain("Paths fixed: 1 of 2. Advisories eliminated project-wide: 0 of 1. Both cover all commands together.");
+  });
+
+  it("counts the advisory as eliminated when the other dependent accepts the fixed version", async () => {
+    const lock = JSON.parse(readFileSync(join(dir, "package-lock.json"), "utf8"));
+    lock.packages["node_modules/beta"].dependencies.shared = "^1.0.0";
+    writeFileSync(join(dir, "package-lock.json"), JSON.stringify(lock));
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "alpha")).toMatchObject({
+      status: "upgrade",
+      clears: { count: 1 },
+      remaining: [],
+      paths: { total: 2, fixed: 2, remaining: 0 },
+    });
+    expect(report.plan.find((e) => e.name === "alpha")?.stillReachedVia).toBeUndefined();
+    expect(report.planSummary).toMatchObject({ pathsFixed: 2, advisoriesEliminated: 1, advisoriesTotal: 1 });
+  });
+});
+
+describe("upgrade plan: commands for an entry that only removes paths", () => {
+  it("does not say it clears an advisory it leaves open", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "patchpath-shared-cmd-"));
+    try {
+      copyFileSync(join(__dirname, "fixtures", "shared-transitive", "package-lock.json"), join(dir, "package-lock.json"));
+      requests = [];
+      broken = new Set();
+      advisories = [{ id: "GHSA-shared", name: "shared", fixed: "1.2.0" }];
+      registry = {
+        alpha: { versions: { "1.0.0": { dependencies: { shared: "^1.0.0" } }, "1.1.0": { dependencies: { shared: "^1.2.0" } } } },
+        beta: { versions: { "1.0.0": { dependencies: { shared: "~1.0.0" } } } },
+        shared: { versions: { "1.0.0": {}, "1.2.0": {} } },
+      };
+      vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+      const text = formatText(await scan(dir, { cache: false }));
+      expect(text).toContain("estimated to remove 1 vulnerable path in this step; 1 advisory stays open");
+      expect(text).not.toContain("estimated to clear 0 of");
+    } finally {
+      vi.unstubAllGlobals();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("upgrade plan: ranking and reach with a shared package", () => {
+  let dir: string;
+  const lock = (packages: Record<string, unknown>) =>
+    writeFileSync(join(dir, "package-lock.json"), JSON.stringify({ lockfileVersion: 3, packages }));
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "patchpath-rank-"));
+    requests = [];
+    broken = new Set();
+    advisories = [
+      { id: "GHSA-shared", name: "shared", fixed: "1.2.0" },
+      { id: "GHSA-own", name: "own", fixed: "1.2.0" },
+    ];
+    registry = {
+      shared: { versions: { "1.0.0": {}, "1.2.0": {} } },
+      own: { versions: { "1.0.0": {}, "1.2.0": {} } },
+      beta: { versions: { "1.0.0": { dependencies: { shared: "~1.0.0" } } } },
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("prefers a breaking upgrade that clears an advisory over a non-breaking one that only removes a path", async () => {
+    lock({
+      "": { dependencies: { alpha: "^1.0.0", beta: "^1.0.0" } },
+      "node_modules/alpha": pub("alpha", "1.0.0", { dependencies: { shared: "^1.0.0", own: "1.0.0" } }),
+      "node_modules/beta": pub("beta", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+      "node_modules/own": pub("own", "1.0.0"),
+    });
+    registry.alpha = {
+      versions: {
+        "1.0.0": { dependencies: { shared: "^1.0.0", own: "1.0.0" } },
+        "1.1.0": { dependencies: { shared: "^1.2.0", own: "1.0.0" } },
+        "2.0.0": { dependencies: { shared: "^1.2.0", own: "^1.2.0" } },
+      },
+    };
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "alpha")).toMatchObject({ status: "upgrade", target: "2.0.0", clears: { count: 1, packages: ["own@1.0.0"] } });
+  });
+
+  it("does not recommend a breaking upgrade that clears nothing", async () => {
+    lock({
+      "": { dependencies: { alpha: "^1.0.0", beta: "^1.0.0" } },
+      "node_modules/alpha": pub("alpha", "1.0.0", { dependencies: { shared: "^1.0.0" } }),
+      "node_modules/beta": pub("beta", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+    });
+    registry.alpha = {
+      versions: { "1.0.0": { dependencies: { shared: "^1.0.0" } }, "2.0.0": { dependencies: { shared: "^1.2.0" } } },
+    };
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "alpha")).toMatchObject({ status: "no-fix", clears: { count: 0 } });
+    expect(JSON.stringify(report.commands ?? [])).not.toContain("alpha@2.0.0");
+    expect(report.plan.find((e) => e.name === "alpha")?.reason).toContain("2.0.0");
+  });
+
+  it("names only other direct dependencies, not ones that sit above the entry's own dependency", async () => {
+    lock({
+      "": { dependencies: { alpha: "^1.0.0", beta: "^1.0.0", gamma: "^1.0.0" } },
+      "node_modules/alpha": pub("alpha", "1.0.0", { dependencies: { shared: "^1.0.0" } }),
+      "node_modules/beta": pub("beta", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/gamma": pub("gamma", "1.0.0", { dependencies: { alpha: "^1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+    });
+    registry.alpha = {
+      versions: { "1.0.0": { dependencies: { shared: "^1.0.0" } }, "1.1.0": { dependencies: { shared: "^1.2.0" } } },
+    };
+    registry.gamma = { versions: { "1.0.0": { dependencies: { alpha: "^1.0.0" } } } };
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "alpha")?.stillReachedVia).toEqual(["beta"]);
+  });
+});
+
+describe("upgrade plan: dev-only copies with includeDev false", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "patchpath-devcopy-"));
+    requests = [];
+    broken = new Set();
+    advisories = [{ id: "GHSA-shared", name: "shared", fixed: "1.2.0" }];
+    registry = {
+      app: { versions: { "1.0.0": { dependencies: { shared: "1.0.0" } }, "1.1.0": { dependencies: { shared: "1.0.0" } } } },
+      shared: { versions: { "1.0.0": {}, "1.2.0": {} } },
+    };
+    writeFileSync(
+      join(dir, "package-lock.json"),
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {
+          "": { dependencies: { app: "^1.0.0" }, devDependencies: { devtool: "^1.0.0" } },
+          "node_modules/app": pub("app", "1.0.0", { dependencies: { shared: "1.0.0" } }),
+          "node_modules/shared": pub("shared", "1.0.0"),
+          "node_modules/devtool": pub("devtool", "1.0.0", { dev: true, dependencies: { shared: "1.0.0" } }),
+          "node_modules/devtool/node_modules/shared": pub("shared", "1.0.0", { dev: true }),
+        },
+      }),
+    );
+    registry.devtool = { versions: { "1.0.0": { dependencies: { shared: "1.0.0" } } } };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it.each([true, false])("a dev-only copy is not counted as a path (includeDev %s): no upgrade helps", async (includeDev) => {
+    const report = await scan(dir, { cache: false, includeDev });
+    expect(report.plan.find((e) => e.name === "app")).toMatchObject({ status: "no-fix", paths: { total: includeDev ? 2 : 1, fixed: 0 } });
+    expect(JSON.stringify(report.commands ?? [])).not.toContain("app@");
+  });
+});
+
+describe("upgrade plan: introduced advisories and in-range credit", () => {
+  let dir: string;
+  const lock = (packages: Record<string, unknown>) =>
+    writeFileSync(join(dir, "package-lock.json"), JSON.stringify({ lockfileVersion: 3, packages }));
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "patchpath-intro-"));
+    requests = [];
+    broken = new Set();
+    advisories = [{ id: "GHSA-shared", name: "shared", fixed: "1.2.0" }];
+    registry = {
+      shared: { versions: { "1.0.0": {}, "1.1.0": {}, "1.2.0": {} } },
+      beta: { versions: { "1.0.0": { dependencies: { shared: "~1.0.0" } } } },
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not recommend a path-only upgrade that adds a new dependency", async () => {
+    lock({
+      "": { dependencies: { app: "^1.0.0", beta: "^1.0.0" } },
+      "node_modules/app": pub("app", "1.0.0", { dependencies: { shared: "^1.0.0" } }),
+      "node_modules/beta": pub("beta", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+    });
+    registry.app = {
+      versions: {
+        "1.0.0": { dependencies: { shared: "^1.0.0" } },
+        "1.1.0": { dependencies: { shared: "^1.2.0", fresh: "^1.0.0" } },
+      },
+    };
+    registry.fresh = { versions: { "1.0.0": {} } };
+    advisories.push({ id: "GHSA-fresh", name: "fresh" });
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "app")).toMatchObject({ status: "no-fix" });
+    expect(JSON.stringify(report.commands ?? [])).not.toContain("app@");
+  });
+
+  it("keeps a breaking upgrade's credit when the in-range update that would clear it is not in any command", async () => {
+    lock({
+      "": { dependencies: { alpha: "^1.0.0", react: "^1.0.0" } },
+      "node_modules/alpha": pub("alpha", "1.0.0", { dependencies: { mid: "^1.0.0" } }),
+      "node_modules/mid": pub("mid", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/react": pub("react", "1.0.0"),
+      "node_modules/shared": pub("shared", "1.0.0"),
+    });
+    registry.alpha = {
+      versions: { "1.0.0": { dependencies: { mid: "^1.0.0" } }, "2.0.0": { dependencies: { shared: "^1.2.0" } } },
+    };
+    // The in-range release of mid would clear it, but it needs a react the tree does not have: held back.
+    registry.mid = {
+      versions: {
+        "1.0.0": { dependencies: { shared: "~1.0.0" } },
+        "1.0.5": { dependencies: { shared: "^1.2.0" }, peerDependencies: { react: "^99.0.0" } },
+      },
+    };
+    const report = await scan(dir, { cache: false });
+    const safeUpdates = (report.commands ?? []).filter((c) => c.kind === "safe").flatMap((c) => c.update);
+    expect(safeUpdates).not.toContain("mid");
+    expect(report.plan.find((e) => e.name === "alpha")).toMatchObject({ status: "upgrade", target: "2.0.0", clears: { count: 1 } });
+  });
+
+  it("reports advisories the plan introduces and counts units by package version", async () => {
+    advisories = [
+      { id: "GHSA-a", name: "shared", fixed: "1.1.0" },
+      { id: "GHSA-b", name: "shared", introduced: "1.1.0", fixed: "1.3.0" },
+      { id: "GHSA-own", name: "own", fixed: "1.2.0" },
+    ];
+    registry = {
+      shared: { versions: { "1.0.0": {}, "1.1.0": {} } },
+      own: { versions: { "1.0.0": {}, "1.2.0": {} } },
+      alpha: {
+        versions: {
+          "1.0.0": { dependencies: { shared: "1.0.0", own: "1.0.0" } },
+          "1.1.0": { dependencies: { shared: "1.1.0", own: "1.2.0" } },
+        },
+      },
+    };
+    lock({
+      "": { dependencies: { alpha: "^1.0.0" } },
+      "node_modules/alpha": pub("alpha", "1.0.0", { dependencies: { shared: "1.0.0", own: "1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+      "node_modules/own": pub("own", "1.0.0"),
+    });
+    const report = await scan(dir, { cache: false });
+    expect(report.planSummary).toMatchObject({ advisoriesTotal: 2, advisoriesEliminated: 2, advisoriesIntroduced: 1 });
+    expect(formatText(report)).toContain("Advisories introduced: 1");
+  });
+
+  it("does not print an introduced count when the plan introduces nothing", async () => {
+    lock({
+      "": { dependencies: { app: "^1.0.0", beta: "^1.0.0" } },
+      "node_modules/app": pub("app", "1.0.0", { dependencies: { shared: "^1.0.0" } }),
+      "node_modules/beta": pub("beta", "1.0.0", { dependencies: { shared: "~1.0.0" } }),
+      "node_modules/shared": pub("shared", "1.0.0"),
+    });
+    registry.app = { versions: { "1.0.0": { dependencies: { shared: "^1.0.0" } }, "1.1.0": { dependencies: { shared: "^1.2.0" } } } };
+    const report = await scan(dir, { cache: false });
+    expect(report.planSummary?.advisoriesIntroduced).toBeUndefined();
+    expect(formatText(report)).not.toContain("introduced");
+  });
+});
+
+describe("upgrade plan: a clearing upgrade that brings in more than it clears", () => {
+  const setup = (introducedCount: number) => {
+    advisories = [
+      { id: "GHSA-a", name: "shared", fixed: "1.1.0" },
+      ...Array.from({ length: introducedCount }, (_, i) => ({ id: `GHSA-n${i}`, name: "newdep" })),
+    ];
+    registry = {
+      shared: { versions: { "1.0.0": {}, "1.1.0": {} } },
+      newdep: { versions: { "1.0.0": {} } },
+      app: { versions: { "1.0.0": { dependencies: { shared: "1.0.0" } }, "1.1.0": { dependencies: { shared: "1.1.0", newdep: "1.0.0" } } } },
+    };
+  };
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "patchpath-net-"));
+    requests = [];
+    broken = new Set();
+    writeFileSync(
+      join(dir, "package-lock.json"),
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {
+          "": { dependencies: { app: "^1.0.0" } },
+          "node_modules/app": pub("app", "1.0.0", { dependencies: { shared: "1.0.0" } }),
+          "node_modules/shared": pub("shared", "1.0.0"),
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL, init?: RequestInit) => fakeNetwork(String(input), init)));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("is no-fix, naming the package and the count, when the new dependency brings in more", async () => {
+    setup(3);
+    const report = await scan(dir, { cache: false });
+    const entry = report.plan.find((e) => e.name === "app");
+    expect(entry?.status).toBe("no-fix");
+    expect(entry?.reason).toContain("newdep@1.0.0");
+    expect(entry?.reason).toContain("brings in 3");
+  });
+
+  it("keeps the upgrade and says what it brings in when it still clears more", async () => {
+    setup(1);
+    advisories.push({ id: "GHSA-b", name: "shared", fixed: "1.1.0" });
+    const report = await scan(dir, { cache: false });
+    expect(report.plan.find((e) => e.name === "app")).toMatchObject({ status: "upgrade", target: "1.1.0" });
+    expect(formatText(report)).toContain("brings in 1 advisory (newdep@1.0.0)");
+    expect(report.planSummary?.advisoriesIntroduced).toBe(1);
+  });
+
+  it("keeps the upgrade but marks it unverified when an added package cannot be checked", async () => {
+    setup(0);
+    delete registry.newdep;
+    const report = await scan(dir, { cache: false });
+    const entry = report.plan.find((e) => e.name === "app");
+    expect(entry).toMatchObject({ status: "upgrade", unchecked: [{ name: "newdep", reason: "not found on the registry" }] });
+    expect(entry?.reason).toBe("adds newdep, which could not be checked (not found on the registry)");
+    expect(formatText(report)).toContain("adds newdep, which could not be checked");
+  });
+
+  it("asks the registry about an added package only when a candidate adds one", async () => {
+    setup(0);
+    registry.app = { versions: { "1.0.0": { dependencies: { shared: "1.0.0" } }, "1.1.0": { dependencies: { shared: "1.1.0" } } } };
+    await scan(dir, { cache: false });
+    expect(requests.some((r) => r.includes("registry.npmjs.org/newdep"))).toBe(false);
   });
 });

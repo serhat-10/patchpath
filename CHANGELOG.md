@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 - 2026-10-30
+
+### Changed
+- The text output prints the `npm update` line twice after an install. One pass can leave a dependency of a package it just moved where it was, because npm reuses the node already in the tree. The JSON `update` list is not repeated: run it twice if you use the JSON directly.
+
+### Fixed
+- Upgrade plan: a name that the safe step installs directly stays in `npm update` while other copies of it need the in-range refresh (for example transitive `ws` copies next to a direct `ws` upgrade).
+- Upgrade plan: when two direct dependencies pull the same vulnerable transitive package and only one is upgraded, the plan no longer says "no upgrade clears" for it. It lists the upgrade, shows what is still open and names the other direct dependencies that still reach it (`PlanEntry.stillReachedVia`). The advisory is not counted as cleared. Such an entry now has status `upgrade` with `clears.count` 0 (it was `no-fix`).
+
+### Added
+- Paths fixed vs advisories eliminated. `PlanEntry.paths` (`total`, `fixed`, `remaining`) counts vulnerable dependency paths per entry.
+- New `Report.planSummary` (`pathsTotal`, `pathsFixed`, `pathsRemaining`, `advisoriesTotal`, `advisoriesEliminated`) gives the project-wide numbers with the whole plan applied. The text report prints both under the plan. Existing fields are unchanged.
+- A path-only upgrade (no advisory cleared) can appear in the npm install commands. `PlanCommand.clears.pathsFixed` says how many paths a step removes, and the text says "estimated to remove N vulnerable paths in this step".
+- An upgrade that clears an advisory is always preferred over one that only removes paths. A breaking upgrade that clears nothing is not recommended (the entry stays `no-fix`).
+- `stillReachedVia` does not name dependencies that sit above the upgraded one or that the plan upgrades too. An entry's `remaining` is judged with the whole plan applied.
+- A breaking upgrade gets no credit for advisories an in-range `npm update` already clears.
+- `planSummary.advisoriesEliminated` now counts like the report's headline number (one per package version and advisory): present before and gone after the whole plan. New `planSummary.advisoriesIntroduced` (only when above 0) counts advisories present after and not before; the text prints it as "Advisories introduced: N".
+- An added package that cannot be checked (404, no version in range, git/file/tarball spec) no longer counts as clean: the upgrade is kept, `PlanEntry.unchecked` lists it and the entry says so. Aliases are looked up by their real name. Known limits: dependencies of an added package, and packages an in-range `npm update` brings in, are not checked.
+- A package that a new version adds (not an optional peer, not already installed at a satisfying version) is checked against the registry and OSV. A path-only upgrade is not recommended when it adds one or brings in any advisory. An upgrade that clears an advisory is recommended only if it clears more (by severity) than it brings in; the text says "brings in N advisories (package)". No extra requests when no candidate adds a package.
+- A breaking upgrade is not discounted for an in-range update unless the plan's commands really clear those advisories (the plan is made again with the credit restored otherwise).
+- With `--no-dev`, dev-only dependents are not counted as paths and do not keep an advisory open.
+
 ## 0.1.1 - 2026-10-25
 
 ### Changed

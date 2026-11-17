@@ -81,6 +81,21 @@ export interface Summary {
   outdated: Record<UpdateGap, number>;
 }
 
+/** Project-wide effect of the plan, see `Report.planSummary`. */
+export interface PlanSummary {
+  pathsTotal: number;
+  pathsFixed: number;
+  pathsRemaining: number;
+  advisoriesTotal: number;
+  advisoriesEliminated: number;
+  /**
+   * Advisories present after the plan and not before. Counted like the headline vulnerability
+   * count: one per package version and advisory, so a package that moves to another version that
+   * is still affected counts once as eliminated and once as introduced. Absent when 0.
+   */
+  advisoriesIntroduced?: number;
+}
+
 /** An advisory that would still be open after the recommended upgrade. */
 export interface PlanAdvisory {
   id: string;
@@ -115,7 +130,9 @@ export interface PlanEntry {
   version: string;
   dev: boolean;
   /**
-   * `upgrade`: `target` clears at least one advisory. `no-fix`: no candidate version clears any.
+   * `upgrade`: `target` clears at least one advisory or removes at least one vulnerable path (see
+   * `paths`; `clears.count` 0 means the advisory stays open through another dependent). `no-fix`: no
+   * candidate version clears any advisory or removes any path.
    * `unavailable`: the registry data needed for an estimate could not be read (see `reason`).
    */
   status: "upgrade" | "no-fix" | "unavailable";
@@ -132,6 +149,21 @@ export interface PlanEntry {
   clears: { count: number; packages: string[]; worst?: Severity };
   /** Advisories still open after the target, including any the target is estimated to introduce. */
   remaining: PlanAdvisory[];
+  /**
+   * Vulnerable dependency paths (a vulnerable install location, counted once per dependent that
+   * asks for it): how many there are, how many the target removes and how many stay. A shared
+   * transitive package can lose a path here and keep the advisory (`remaining`). The count covers
+   * every dependent of the vulnerable copies project-wide, so entries that share a package count it
+   * each: not additive across entries. Use `Report.planSummary` for project totals. `paths` is judged
+   * for the entry alone (the other entries are not applied); `remaining` and `stillReachedVia`
+   * are judged with the whole plan applied, so they leave out what another upgrade closes.
+   */
+  paths?: { total: number; fixed: number; remaining: number };
+  /**
+   * Other direct dependencies (names) that still reach a package in `remaining`: upgrading this
+   * one does not close those paths.
+   */
+  stillReachedVia?: string[];
   /** When `target` leaves something open: the smallest breaking version estimated to clear everything. */
   breakingAlternative?: string;
   /** Deprecation message of the installed version, if it is deprecated. */
@@ -144,6 +176,12 @@ export interface PlanEntry {
   alsoUpdate?: string[];
   /** Installed packages (`name@version`) whose version after the upgrade could not be estimated. */
   unresolved?: string[];
+  /**
+   * Packages the target adds that could not be checked against advisories (registry data missing, no
+   * version in range, or not a registry version). The upgrade is kept but unverified in that respect;
+   * `reason` says so.
+   */
+  unchecked?: { name: string; reason: string }[];
   /**
    * Likely peer-dependency conflicts of `target` with the installed tree, e.g.
    * "webpack-dev-server@5.2.6 needs webpack@^5.0.0 (installed 4.41.2)". npm will probably refuse
@@ -180,7 +218,11 @@ export interface PlanCommand {
   install: string[];
   /** `npm install -w <folder>` arguments, per workspace folder that declares the package. */
   workspaceInstall?: Record<string, string[]>;
-  /** `npm update` arguments (package names) to run after the install. */
+  /**
+   * `npm update` arguments (package names) to run after the install. The text output runs the line
+   * twice when `install` is not empty: one pass can leave a dependency of a package it just moved
+   * where it was. Run it twice if you run the JSON yourself.
+   */
   update: string[];
   /** Plan entries (direct dependency names, or the alias they are declared under) this step applies. */
   entries: string[];
@@ -214,7 +256,7 @@ export interface PlanCommand {
    * For `safe`: what the step is estimated to clear across the whole report, with everything
    * listed in it applied together.
    */
-  clears?: { count: number; total: number; packages: string[]; worst?: Severity };
+  clears?: { count: number; total: number; packages: string[]; worst?: Severity; /** Vulnerable paths the step removes. */ pathsFixed?: number };
 }
 
 /**
@@ -267,6 +309,12 @@ export interface Report {
    * vulnerable, best first. An estimate (see PlanEntry). Empty when planning was skipped.
    */
   plan: PlanEntry[];
+  /**
+   * What the whole plan (every upgrade plus the in-range updates) is estimated to do project-wide.
+   * `pathsFixed` counts vulnerable dependency paths removed; `advisoriesEliminated` counts
+   * advisories that no longer appear anywhere in the tree. The two differ when a package is shared.
+   */
+  planSummary?: PlanSummary;
   /** Commands that apply the plan, in order (safe first). Absent or empty when there is nothing to run. */
   commands?: PlanCommand[];
   /** In-range updates of locked transitive packages (part of the `safe` command). */

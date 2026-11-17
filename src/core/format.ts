@@ -136,6 +136,13 @@ export function formatText(report: Report, { color = false } = {}): string {
   if (plan.length) {
     lines.push("", `${c.bold("Upgrade plan")} ${c.dim("(estimated from registry metadata: apply it, then scan again)")}`);
     for (const e of plan) lines.push(...planLines(e, c, severityColor, report.commands));
+    const s = report.planSummary;
+    if (s) {
+      // Two different numbers: a shared package can lose a path and still be open through another.
+      lines.push(
+        `  ${c.bold("Paths fixed")}: ${s.pathsFixed} of ${s.pathsTotal}. ${c.bold("Advisories eliminated project-wide")}: ${s.advisoriesEliminated} of ${s.advisoriesTotal}. ${c.dim("Both cover all commands together.")}${s.advisoriesIntroduced ? ` ${c.yellow(`Advisories introduced: ${s.advisoriesIntroduced}.`)}` : ""}`,
+      );
+    }
     if (report.refresh) {
       const r = report.refresh.clears;
       const worst = r.worst ?? "unknown";
@@ -271,12 +278,30 @@ function planLines(
   }
   const worst = e.clears.worst ?? "unknown";
   const count = e.clears.count === e.total ? advisories(e.total) : `${e.clears.count} of ${advisories(e.total)}`;
-  out.push(
-    `  ${c.bold(name)} -> ${c.green(c.bold(safe(e.target as string, 100)))}: clears ${count}` +
-      `${packages(e.clears.packages.length)} (worst ${severityColor[worst](worst)}), ` +
-      `${e.breaking ? c.yellow("may break (new major or 0.x minor)") : "non-breaking"}${deprecated}`,
-  );
+  const kind = e.breaking ? c.yellow("may break (new major or 0.x minor)") : "non-breaking";
+  const target = c.green(c.bold(safe(e.target as string, 100)));
+  if (e.clears.count === 0 && e.paths && e.paths.fixed > 0) {
+    // The upgrade closes some paths to a shared package but no advisory.
+    out.push(
+      `  ${c.bold(name)} -> ${target}: removes ${e.paths.fixed} of ${plural(e.paths.total, "vulnerable path")}, clears no advisory, ${kind}${deprecated}`,
+    );
+  } else {
+    out.push(
+      `  ${c.bold(name)} -> ${target}: clears ${count}` +
+        `${packages(e.clears.packages.length)} (worst ${severityColor[worst](worst)}), ${kind}${deprecated}`,
+    );
+  }
   if (e.remaining.length) out.push(c.dim(`    still open: ${remainingText(e.remaining)}`));
+  if (e.unchecked?.length && e.reason) out.push(c.yellow(`    ${safe(e.reason, 400)}`));
+  const brought = e.remaining.filter((a) => a.introduced);
+  if (brought.length) {
+    const pkgs = [...new Set(brought.map((a) => a.package))];
+    out.push(c.yellow(`    brings in ${advisories(brought.length)} (${pkgs.slice(0, 3).map((p) => safe(p, 320)).join(", ")}${pkgs.length > 3 ? ", ..." : ""})`));
+  }
+  if (!e.remaining.length && e.clears.count === 0 && e.paths && e.paths.fixed > 0) out.push(c.dim("    nothing stays open once the other upgrades in this plan are applied"));
+  if (e.stillReachedVia?.length && e.remaining.length) {
+    out.push(c.dim(`    still reached through: ${e.stillReachedVia.slice(0, MAX_ALSO_UPDATE_LISTED).map((n) => safe(n, 214)).join(", ")}`));
+  }
   if (e.breakingAlternative) {
     out.push(c.dim(`    ${safe(e.breakingAlternative, 100)} would clear all of them (may break: new major or 0.x minor)`));
   }
@@ -332,11 +357,17 @@ function commandLines(commands: PlanCommand[], c: Painter): string[] {
       ? `existing peer conflict (${safe(cmd.existingConflicts[0] as string, 200)}` +
         `${cmd.existingConflicts.length > 1 ? `, +${cmd.existingConflicts.length - 1} more` : ""})`
       : "existing peer conflict";
+  // After an install, one `npm update` can leave a dependency of a package it just moved where it
+  // was (npm reuses the node already in the tree), so the line runs twice; the second pass is a no-op otherwise.
+  const updateLines = (step: Pick<PlanCommand, "install" | "workspaceInstall" | "update">, flag: string) => {
+    const line = `npm update ${flag}-- ${args(step.update)}`;
+    return step.install.length || Object.keys(step.workspaceInstall ?? {}).length ? [line, line] : [line];
+  };
   // `--` ends npm's options: nothing after it can be read as one, whatever the lockfile said.
-  const lines = (step: Pick<PlanCommand, "install" | "workspaceInstall" | "update">, flag: string) => [
+  const lines =(step: Pick<PlanCommand, "install" | "workspaceInstall" | "update">, flag: string) => [
     ...(step.install.length ? [`npm install ${flag}-- ${args(step.install)}`] : []),
     ...Object.entries(step.workspaceInstall ?? {}).map(([folder, list]) => `npm install -w ${safe(folder, 200)} ${flag}-- ${args(list)}`),
-    ...(step.update.length ? [`npm update ${flag}-- ${args(step.update)}`] : []),
+    ...(step.update.length ? updateLines(step, flag) : []),
   ];
   const npm = (cmd: PlanCommand) => {
     if (cmd.blocked) {
@@ -363,7 +394,12 @@ function commandLines(commands: PlanCommand[], c: Painter): string[] {
   const first = commands.find((cmd) => cmd.kind === "safe");
   if (first) {
     const cl = first.clears;
-    const estimate = cl ? `, estimated to clear ${cl.count} of ${advisories(cl.total)}` : "";
+    // An upgrade that only removes paths to a shared package clears no advisory: say so.
+    const estimate = !cl
+      ? ""
+      : cl.count === 0 && cl.pathsFixed
+        ? `, estimated to remove ${plural(cl.pathsFixed, "vulnerable path")} in this step; ${advisories(cl.total)} ${cl.total === 1 ? "stays" : "stay"} open`
+        : `, estimated to clear ${cl.count} of ${advisories(cl.total)}`;
     out.push(c.dim(`  # 1. non-breaking${estimate}`));
     for (const line of npm(first)) out.push(`  ${line}`);
     out.push(...heldLines(first));

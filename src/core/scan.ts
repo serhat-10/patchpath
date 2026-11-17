@@ -476,6 +476,7 @@ export async function scan(target: string, options: ScanOptions = {}): Promise<R
     plan,
     commands: planResult?.commands.length ? planResult.commands : undefined,
     refresh: planResult?.refresh,
+    planSummary: planResult?.planSummary,
     bundled: overrides.bundled.length ? overrides.bundled : undefined,
     overridesOmitted: overridesOmitted.length ? overridesOmitted : undefined,
     warnings: warnings.sort(),

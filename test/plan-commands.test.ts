@@ -948,8 +948,16 @@ describe("every chain to a vulnerable copy", () => {
   it("does not claim a copy that another locked parent still pins", async () => {
     registry.adapter = { versions: { "2.5.2": { dependencies: { ws: "~8.11.0" } }, "2.5.5": { dependencies: { ws: "~8.11.0" } } } };
     const report = await scan(dir, { cache: false });
-    // The shortest chain (d > engine > ws) is fixed, but adapter keeps ws on ~8.11.0.
-    expect(entry(report, "d")).toMatchObject({ status: "no-fix", total: 1 });
+    // The shortest chain (d > engine > ws) is fixed, but adapter keeps ws on ~8.11.0: one path
+    // goes, the advisory stays open and is not counted as cleared.
+    expect(entry(report, "d")).toMatchObject({
+      status: "upgrade",
+      total: 1,
+      clears: { count: 0 },
+      paths: { total: 2, fixed: 1, remaining: 1 },
+      remaining: [{ id: "GHSA-ws", package: "ws@8.11.0" }],
+    });
+    expect(report.planSummary).toMatchObject({ pathsFixed: 1, advisoriesEliminated: 0 });
     expect(report.findings.find((f) => f.name === "ws")).toBeDefined();
     expect(formatText(report)).not.toContain("covered by upgrading d");
   });

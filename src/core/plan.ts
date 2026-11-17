@@ -13,6 +13,7 @@ import {
   type PlanCommand,
   type PlanEntry,
   type PlanRefresh,
+  type PlanSummary,
   type Severity,
   type Vulnerability,
 } from "./types.js";
@@ -86,6 +87,7 @@ export interface OverrideRule {
 
 export interface PlanResult {
   plan: PlanEntry[];
+  planSummary?: PlanSummary;
   /** The commands that apply the plan, safe step first. */
   commands: PlanCommand[];
   refresh?: PlanRefresh;
@@ -103,6 +105,8 @@ interface Target {
   paths: string[];
   /** Every copy is bundled: only the bundling package can change it. */
   bundled: boolean;
+  /** Vulnerable dependency paths today: every location, once per dependent that asks for it. */
+  pathCount: number;
 }
 
 /** A root or workspace (`root`, "" for the project root) declaring `key`, which resolves to `path`. */
@@ -143,6 +147,8 @@ interface Group {
 interface Resolution {
   versions: Set<string>;
   unknown: boolean;
+  /** Dependents that end up on each version. Absent: as many as the location has today. */
+  edges?: Map<string, number>;
 }
 
 interface Scenario {
@@ -163,6 +169,8 @@ interface Scenario {
 interface Outcome {
   versions: string[];
   unknown: boolean;
+  /** Dependents (over all locations) that end up on each version. */
+  edges: Map<string, number>;
 }
 
 interface Evaluation {
@@ -170,6 +178,11 @@ interface Evaluation {
   breaking: boolean;
   remaining: PlanAdvisory[];
   cleared: { target: Target; vuln: Vulnerability }[];
+  /** Vulnerable paths before and after (see `Target.pathCount`). */
+  pathsTotal: number;
+  pathsAfter: number;
+  /** Packages the version adds (see `Candidate.added`). */
+  added: { name: string; key: string; spec: string; version: string | null; unchecked?: string }[];
   alsoUpdate: string[];
   unresolved: string[];
   score: number;
@@ -188,9 +201,36 @@ class CapReached extends Error {}
  * `unavailable` entries.
  */
 export async function buildPlan(input: PlanInput): Promise<PlanResult> {
+  // OSV answers are kept across the two runs: the second one sends no query the first did not.
+  const osv: OsvMemo = { checked: new Set(), results: new Map(), records: new Map(input.records) };
+  const first = await planOnce(input, new Set(), osv);
+  // A breaking upgrade is not credited for what an in-range update would clear. If the plan's
+  // commands do not actually clear it, the upgrade gets its credit back and the plan is made again.
+  const unmet = first.demoted.filter((d) => d.pairs.some((k) => !first.committed.has(k)));
+  if (!unmet.length) return first.result;
+  return (await planOnce(input, new Set(unmet.map((d) => d.id)), osv)).result;
+}
+
+interface OsvMemo {
+  checked: Set<string>;
+  results: Map<string, Vulnerability[]>;
+  records: Map<string, OsvVuln>;
+}
+
+interface PlanRun {
+  result: PlanResult;
+  /** Breaking candidates left out because an in-range update was assumed to clear their advisories (`target\u0000id` pairs). */
+  demoted: { id: string; pairs: string[] }[];
+  /** Advisories (`target\u0000id`) that the safe command clears as a whole. */
+  committed: Set<string>;
+}
+
+async function planOnce(input: PlanInput, credit: Set<string>, osv: OsvMemo): Promise<PlanRun> {
+  const demoted: PlanRun["demoted"] = [];
+  const committed = new Set<string>();
   const { dependencies, findings, infos, fresh, overrides, graph, cache, net } = input;
   const warnings: string[] = [];
-  const records = new Map(input.records);
+  const records = osv.records;
   const byId = new Map(dependencies.map((d) => [`${d.name}@${d.version}`, d]));
   const allById = new Map((input.allDependencies ?? dependencies).map((d) => [`${d.name}@${d.version}`, d]));
   const idOfNode = (n: GraphNode) => `${n.name}@${n.version}`;
@@ -202,6 +242,13 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
   let refreshCut = false;
   const uncheckedUpdates: string[] = [];
   const nodeAt = (path: string) => graph.nodes.get(path) as GraphNode;
+  // A dependent counts as a path only when it is part of the scan (dev packages are not with --no-dev).
+  const live = (path: string) => {
+    const n = nodeAt(path);
+    return n.root || byId.has(idOfNode(n));
+  };
+  // A location nothing asks for (no dependents at all) still counts as one path; one only dev packages ask for, none.
+  const fanIn = (n: GraphNode) => (n.in.length ? n.in.filter((e) => live(e.from)).length : 1);
   // Install locations an override pins: every copy for a top-level override, only the copies
   // below the named parents for a nested one (`{"express": {"qs": ...}}` leaves other's qs free).
   const pinned = new Set<string>();
@@ -238,9 +285,10 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     const id = `${f.name}@${f.version}`;
     const paths = pathsById.get(id);
     if (!paths?.length) continue;
-    targets.push({ id, name: f.name, version: f.version, finding: f, paths, bundled: paths.every((p) => nodeAt(p).bundled) });
+    const pathCount = paths.reduce((n, p) => n + fanIn(nodeAt(p)), 0);
+    targets.push({ id, name: f.name, version: f.version, finding: f, paths, bundled: paths.every((p) => nodeAt(p).bundled), pathCount });
   }
-  if (!targets.length) return { plan: [], commands: [], warnings, requests: 0 };
+  if (!targets.length) return { result: { plan: [], commands: [], warnings, requests: 0 }, demoted, committed };
 
   // Direct locations: what a root or workspace declares. Only scanned ones (--no-dev) start a group.
   const directPaths = new Map<string, string[]>();
@@ -597,7 +645,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       const updatable = keyOf(path) === node.name;
       const wantsUpdate = updatable && scenario.update.has(node.name);
       // The ranges every remaining dependent declares after the change.
-      const specs: { spec: string; parentChanged: boolean }[] = [];
+      const specs: { spec: string; parentChanged: boolean; live: boolean }[] = [];
       for (const edge of node.in) {
         const parent = nodeAt(edge.from);
         const pr = get(edge.from);
@@ -617,10 +665,10 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
           if (!rangeOf(spec)) {
             // not a semver range (git, tag, file): only an unchanged parent says what it gets
             if (parentChanged) result.unknown = true;
-            else specs.push({ spec: node.version, parentChanged });
+            else specs.push({ spec: node.version, parentChanged, live: live(edge.from) });
             continue;
           }
-          specs.push({ spec, parentChanged });
+          specs.push({ spec, parentChanged, live: live(edge.from) });
         }
       }
       const okAll = specs.every((s) => satisfies(node.version, s.spec));
@@ -630,18 +678,23 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         // gone (or unknown, set above)
       } else if (okAll && !update) {
         result.versions.add(node.version);
+        result.edges = new Map([[node.version, specs.filter((s) => s.live).length]]);
       } else {
         // npm looks for one version that satisfies every dependent; failing that, it nests copies.
         const together = isPublic(node) ? pickAll(node.name, specs.map((s) => s.spec)) : null;
         if (together) {
           result.versions.add(together);
+          result.edges = new Map([[together, specs.filter((s) => s.live).length]]);
           if (okAll && together !== node.version && !wantsUpdate) assumed.add(node.name);
         } else {
-          for (const { spec } of specs) {
+          for (const { spec, live: counted } of specs) {
             const ok = satisfies(node.version, spec);
             const picked = ok && !update ? node.version : isPublic(node) ? pick(node.name, spec) : null;
-            if (picked) result.versions.add(picked);
-            else if (ok) result.versions.add(node.version);
+            if (picked) {
+              result.versions.add(picked);
+              result.edges = result.edges ?? new Map();
+              result.edges.set(picked, (result.edges.get(picked) ?? 0) + (counted ? 1 : 0));
+            } else if (ok) result.versions.add(node.version);
             else result.unknown = true;
           }
         }
@@ -674,13 +727,20 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     };
     const outcome = (t: Target): Outcome => {
       const versions = new Set<string>();
+      const edges = new Map<string, number>();
       let unknown = false;
       for (const p of t.paths) {
         const r = resolve(p);
         unknown ||= r.unknown;
-        for (const v of r.versions) versions.add(v);
+        for (const v of r.versions) {
+          versions.add(v);
+          const n = r.edges?.get(v) ?? (v === nodeAt(p).version ? fanIn(nodeAt(p)) : 1);
+          edges.set(v, (edges.get(v) ?? 0) + n);
+        }
       }
-      return { versions: [...versions], unknown };
+      // A copy that only out-of-scope (dev, with --no-dev) packages ask for is not a path of this scan.
+      for (const v of [...versions]) if (edges.get(v) === 0) versions.delete(v);
+      return { versions: [...versions], unknown, edges };
     };
     /**
      * Peer-dependency problems among the packages this scenario moves: a new version whose peer
@@ -749,8 +809,8 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
   }
 
   // OSV results for estimated versions, filled in rounds.
-  const osvChecked = new Set<string>();
-  const osvResults = new Map<string, Vulnerability[]>();
+  const osvChecked = osv.checked;
+  const osvResults = osv.results;
   let osvFailed = false;
   const checkOsv = async (refs: PackageRef[]) => {
     const todo = new Map<string, PackageRef>();
@@ -775,6 +835,12 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
   const refsOf = (t: Target, o: Outcome): PackageRef[] =>
     o.versions.filter((v) => v !== t.version).map((version) => ({ name: t.name, version }));
 
+  /** Whether advisory `id` of `t` affects `version` of the same package (as far as OSV and the records say). */
+  const hitBy = (t: Target, version: string, id: string) => {
+    if (version === t.version) return true;
+    const record = records.get(id);
+    return !record || (osvResults.get(`${t.name}@${version}`) ?? []).some((x) => x.id === id) || isAffected(record, t.name, version);
+  };
   /** Splits a target's advisories into cleared and remaining for one outcome. */
   const judge = (t: Target, o: Outcome, useOsv: boolean) => {
     const current = t.id;
@@ -782,9 +848,9 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     const remaining: PlanAdvisory[] = [];
     if (o.unknown) {
       for (const v of t.finding.vulnerabilities) remaining.push({ id: v.id, severity: v.severity, package: current });
-      return { cleared, remaining, unresolved: true };
+      return { cleared, remaining, unresolved: true, pathsAfter: t.pathCount };
     }
-    if (!o.versions.length) return { cleared: [...t.finding.vulnerabilities], remaining, unresolved: false };
+    if (!o.versions.length) return { cleared: [...t.finding.vulnerabilities], remaining, unresolved: false, pathsAfter: 0 };
     const osvIds = (v: string) => new Set((osvResults.get(`${t.name}@${v}`) ?? []).map((x) => x.id));
     for (const vuln of t.finding.vulnerabilities) {
       const record = records.get(vuln.id);
@@ -805,16 +871,72 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         }
       }
     }
-    return { cleared, remaining, unresolved: false };
+    // Paths that still end on a vulnerable version, whether or not the advisory is cleared.
+    const vulnerable = (v: string) =>
+      v === t.version ||
+      (useOsv && (osvResults.get(`${t.name}@${v}`)?.length ?? 0) > 0) ||
+      t.finding.vulnerabilities.some((vuln) => {
+        const record = records.get(vuln.id);
+        return !record || isAffected(record, t.name, v);
+      });
+    const pathsAfter = o.versions.filter(vulnerable).reduce((n, v) => n + (o.edges.get(v) ?? 1), 0);
+    return { cleared, remaining, unresolved: false, pathsAfter };
   };
 
   // 4. Simulate each candidate version of each direct dependency.
+  /** A package the candidate version declares that the tree does not have yet (so npm would install it). */
+  interface Added {
+    /** The real package name (the target of an npm alias). */
+    name: string;
+    /** The name it is declared under. */
+    key: string;
+    spec: string;
+    /** What npm is estimated to pick; null when it could not be worked out. */
+    version: string | null;
+    /** Why it could not be checked against advisories; set with a null version. */
+    unchecked?: string;
+  }
   interface Candidate {
     version: string;
     breaking: boolean;
     outcomes: Outcome[];
     assumed: string[];
+    added: Added[];
   }
+  /**
+   * Packages `version` of `group.direct` declares and the installed version does not, minus optional
+   * peers (npm does not install them) and names already installed at a version that satisfies the range.
+   */
+  const addedBy = (group: Group, version: string): Added[] => {
+    const meta = metas.get(group.direct.name);
+    const before = meta?.versions[group.direct.version];
+    const after = meta?.versions[version];
+    if (!meta || !before || !after) return [];
+    const optional = new Set(meta.optionalPeers?.[version] ?? []);
+    const out: Added[] = [];
+    for (const [key, raw] of Object.entries(after)) {
+      if (key in before || optional.has(key)) continue;
+      const spec = stripAlias(raw);
+      const at = graph.locate(group.paths[0] ?? "", key);
+      const there = at === undefined ? undefined : graph.nodes.get(at);
+      if (there && !there.root && satisfies(there.version, spec)) continue;
+      // An alias ("npm:real@^1") is looked up under its real name.
+      let name = key;
+      if (raw.startsWith("npm:")) {
+        const rest = raw.slice(4);
+        const at2 = rest.indexOf("@", 1);
+        name = at2 > 0 ? rest.slice(0, at2) : rest;
+      }
+      out.push({
+        name,
+        key,
+        spec,
+        version: null,
+        ...(isValidNpmName(name) && rangeOf(spec) ? {} : { unchecked: "not a registry version, so it cannot be looked up" }),
+      });
+    }
+    return out;
+  };
   interface Planned {
     group: Group;
     candidates: Candidate[];
@@ -875,9 +997,40 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         });
         const outcomes = group.targets.map((t) => resolver.outcome(t));
         resolver.assumed.delete(d.name);
-        return { version, breaking: crossesBreaking(d.version, version), outcomes, assumed: [...resolver.assumed].sort() };
+        return { version, breaking: crossesBreaking(d.version, version), outcomes, assumed: [...resolver.assumed].sort(), added: addedBy(group, version) };
       }),
     });
+  }
+
+  // 4b. Packages a candidate adds: their registry data (only when a candidate adds any) tells which
+  //     version npm would pick, so OSV can be asked about it below.
+  {
+    const names = new Set<string>();
+    for (const p of planned) for (const c of p.candidates) for (const a of c.added) if (!a.unchecked && !metas.has(a.name)) names.add(a.name);
+    const addFailures = new Map<string, string>();
+    await mapLimit([...names], 8, async (name) => {
+      if (net.signal?.aborted) return;
+      try {
+        const { deps } = await fetchPackageDeps(name, cache, net, fresh.get(name), () => {
+          if (requests >= MAX_PLAN_REQUESTS) throw new CapReached();
+          requests++;
+        });
+        if (deps) metas.set(name, deps);
+        else addFailures.set(name, "not found on the registry");
+      } catch (error) {
+        // no data: the version stays unknown and the package counts as unchecked
+        addFailures.set(name, error instanceof CapReached ? "request limit reached" : error instanceof NetworkError ? `${error.host} unreachable` : "registry data unavailable");
+      }
+    });
+    for (const p of planned) {
+      for (const c of p.candidates) {
+        for (const a of c.added) {
+          if (a.unchecked) continue;
+          a.version = pick(a.name, a.spec);
+          if (!a.version) a.unchecked = metas.has(a.name) ? `no version satisfies ${a.spec}` : (addFailures.get(a.name) ?? "registry data unavailable");
+        }
+      }
+    }
   }
 
   // 5. Ask OSV about every estimated version that differs from what is installed, so advisories
@@ -888,6 +1041,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       p.group.targets.forEach((t, i) => round1.push(...refsOf(t, c.outcomes[i] as Outcome)));
       // The direct dependency itself, even when it is clean today.
       round1.push({ name: p.group.direct.name, version: c.version });
+      for (const a of c.added) if (a.version) round1.push({ name: a.name, version: a.version });
     }
   }
   await checkOsv(round1);
@@ -897,8 +1051,12 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     const remaining: PlanAdvisory[] = [];
     const cleared: Evaluation["cleared"] = [];
     const unresolved: string[] = [];
+    let pathsTotal = 0;
+    let pathsAfter = 0;
     group.targets.forEach((t, i) => {
       const verdict = judge(t, c.outcomes[i] as Outcome, true);
+      pathsTotal += t.pathCount;
+      pathsAfter += Math.min(verdict.pathsAfter, t.pathCount);
       if (verdict.unresolved) unresolved.push(t.id);
       for (const vuln of verdict.cleared) cleared.push({ target: t, vuln });
       remaining.push(...verdict.remaining);
@@ -911,11 +1069,17 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         remaining.push({ id: v.id, severity: v.severity, package: directId, after, introduced: true });
       }
     }
+    // Advisories of packages the new version adds.
+    for (const a of c.added) {
+      if (!a.version) continue;
+      const id = `${a.name}@${a.version}`;
+      for (const v of osvResults.get(id) ?? []) remaining.push({ id: v.id, severity: v.severity, package: id, after: id, introduced: true });
+    }
     const score = remaining.reduce((sum, a) => sum + WEIGHT[a.severity], 0);
-    return { version: c.version, breaking: c.breaking, remaining, cleared, alsoUpdate: c.assumed, unresolved, score };
+    return { version: c.version, breaking: c.breaking, remaining, cleared, pathsTotal, pathsAfter, alsoUpdate: c.assumed, unresolved, score, added: c.added };
   };
   const better = (a: Evaluation, b: Evaluation) =>
-    a.score - b.score || b.cleared.length - a.cleared.length || compareVersions(a.version, b.version);
+    a.score - b.score || b.cleared.length - a.cleared.length || a.pathsAfter - b.pathsAfter || compareVersions(a.version, b.version);
   /**
    * On a new breaking line, the newest release that does at least as well: the first release of
    * a new major is rarely the one to move to.
@@ -928,11 +1092,65 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
           !crossesBreaking(e.version, x.version) &&
           x.score <= e.score &&
           x.cleared.length >= e.cleared.length &&
+          x.pathsAfter <= e.pathsAfter &&
           x.unresolved.length <= e.unresolved.length,
       )
       .sort((a, b) => compareVersions(b.version, a.version))[0] ??
       e);
 
+  const openPaths = (group: Group) => group.targets.reduce((n, t) => n + t.pathCount, 0);
+  const pathsOf = (total: number, after: number) => ({ total, fixed: Math.max(0, total - after), remaining: Math.min(total, after) });
+  /** Other direct dependencies whose chains still lead to a package that stays open: upgrading `group` does not close those. */
+  const reachedVia = (group: Group, remaining: PlanAdvisory[]): string[] | undefined => {
+    const open = new Set(remaining.filter((a) => !a.introduced).map((a) => a.package));
+    const own = new Set(group.paths);
+    const names = new Set<string>();
+    const seenUp = new Set<string>();
+    const stack = group.targets.filter((t) => open.has(t.id)).flatMap((t) => t.paths);
+    while (stack.length) {
+      const path = stack.pop() as string;
+      if (seenUp.has(path)) continue;
+      seenUp.add(path);
+      const node = nodeAt(path);
+      if (!live(path)) continue;
+      if (directSet.has(path) && !own.has(path)) names.add(node.name);
+      // Do not climb past the entry's own dependency: what depends on it is fixed along with it.
+      if (own.has(path)) continue;
+      for (const e of node.in) if (!nodeAt(e.from).root) stack.push(e.from);
+      if (node.bundler) stack.push(node.bundler);
+    }
+    return names.size ? [...names].sort().map((n) => sanitize(n, 214)) : undefined;
+  };
+  /**
+   * Advisories (`target`, `id`) that updating the packages above a vulnerable copy in range, with no
+   * package.json change, already clears: a breaking upgrade gets no credit for those.
+   */
+  const clearedByUpdate = (group: Group): Set<string> => {
+    const names = new Set<string>();
+    for (const t of group.targets) {
+      let frontier = t.paths;
+      const seenPaths = new Set(frontier);
+      for (let level = 0; level <= MAX_REFRESH_LEVELS && frontier.length; level++) {
+        const next: string[] = [];
+        for (const path of frontier) {
+          const n = nodeAt(path);
+          if (isPublic(n) && !n.bundled && !pinned.has(path) && keyOf(path) === n.name) names.add(n.name);
+          for (const e of n.in) {
+            if (seenPaths.has(e.from) || nodeAt(e.from).root) continue;
+            seenPaths.add(e.from);
+            next.push(e.from);
+          }
+        }
+        frontier = next;
+      }
+    }
+    const resolver = makeResolver({ changes: new Map(), update: names, refreshChanged: false });
+    const out = new Set<string>();
+    for (const t of group.targets) {
+      for (const v of judge(t, resolver.outcome(t), false).cleared) out.add(`${t.id}\u0000${v.id}`);
+    }
+    return out;
+  };
   const plan: PlanEntry[] = [];
   const chosenByEntry = new Map<PlanEntry, { group: Group; paths: string[]; evaluation: Evaluation }>();
   const unavailable: string[] = [];
@@ -952,6 +1170,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       total,
       deprecated: infos.get(d.name)?.deprecated[d.version],
       estimated: true as const,
+      paths: pathsOf(openPaths(p.group), openPaths(p.group)),
     };
     /** Packages still open because an override in package.json holds them where they are. */
     const heldByOverride = (remaining: PlanAdvisory[]) => {
@@ -966,14 +1185,48 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       continue;
     }
     const evaluations = p.candidates.map((c) => evaluate(p.group, c));
-    const helpful = evaluations.filter((e) => e.cleared.length > 0);
+    // A candidate that only removes some of the paths to a shared package helps too.
+    const helpful = evaluations.filter((e) => e.cleared.length > 0 || e.pathsAfter < e.pathsTotal);
     const full = (list: Evaluation[]) =>
       list.filter((e) => e.remaining.length === 0).sort((a, b) => compareVersions(a.version, b.version))[0];
     const best = (list: Evaluation[]) => [...list].sort(better)[0];
     const nonBreaking = helpful.filter((e) => !e.breaking);
     const breaking = helpful.filter((e) => e.breaking);
-    const chosen =
-      full(nonBreaking) ?? best(nonBreaking) ?? newestOnLine(full(breaking), breaking) ?? newestOnLine(best(breaking), breaking);
+    // Anything that clears an advisory beats anything that only removes paths; a breaking upgrade
+    // that clears nothing is never recommended.
+    // A breaking upgrade only counts for the advisories an in-range npm update would not clear anyway.
+    const directId = `${d.name}@${d.version}`;
+    const free = breaking.length && !credit.has(directId) ? clearedByUpdate(p.group) : new Set<string>();
+    const select = (gone: Set<string>) => {
+      const nets = (e: Evaluation) => (e.breaking ? e.cleared.filter((c) => !gone.has(`${c.target.id}\u0000${c.vuln.id}`)) : e.cleared);
+      const brought = (e: Evaluation) => e.remaining.filter((a) => a.introduced).reduce((n, a) => n + WEIGHT[a.severity], 0);
+      const gained = (e: Evaluation) => nets(e).reduce((n, c) => n + WEIGHT[c.vuln.severity], 0);
+      // Net of what the upgrade brings in, by severity: it must clear more than it adds.
+      const clearing = (list: Evaluation[]) => list.filter((e) => nets(e).length > 0 && gained(e) - brought(e) > 0);
+      // A path-only upgrade must not bring anything new in: an advisory OSV reports for it, or a
+      // dependency the installed version does not have (its advisories are not checked).
+      const pathOnly = (list: Evaluation[]) =>
+        list.filter((e) => nets(e).length === 0 && !e.remaining.some((a) => a.introduced) && !e.added.length);
+      return {
+        chosen:
+          full(clearing(nonBreaking)) ??
+          best(clearing(nonBreaking)) ??
+          newestOnLine(full(clearing(breaking)), clearing(breaking)) ??
+          newestOnLine(best(clearing(breaking)), clearing(breaking)) ??
+          best(pathOnly(nonBreaking)),
+        breakingPathOnly: best(pathOnly(breaking)),
+        // Candidates that clear something but bring in at least as much: named in the reason.
+        netless: best(helpful.filter((e) => nets(e).length > 0 && gained(e) - brought(e) <= 0)),
+      };
+    };
+    const { chosen, breakingPathOnly, netless } = select(free);
+    if (free.size) {
+      const credited = select(new Set()).chosen;
+      if (credited && credited !== chosen) {
+        const pairs = credited.cleared.map((c) => `${c.target.id}\u0000${c.vuln.id}`).filter((k) => free.has(k));
+        if (pairs.length) demoted.push({ id: directId, pairs });
+      }
+    }
     if (!chosen) {
       // Targets whose new version could not be worked out for any candidate.
       const unresolved = p.group.targets.filter(
@@ -993,9 +1246,14 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         });
         continue;
       }
-      const reason = p.candidates.length
-        ? `none of the ${p.candidates.length} newer releases tried clears any`
-        : "no newer non-deprecated release";
+      const intro = netless?.remaining.filter((a) => a.introduced) ?? [];
+      const reason = netless && intro.length
+        ? `${netless.version} clears ${netless.cleared.length} but brings in ${intro.length} (${[...new Set(intro.map((a) => a.package))].slice(0, 3).join(", ")})`
+        : breakingPathOnly
+        ? `none of the ${p.candidates.length} newer releases tried clears any; ${breakingPathOnly.version} (may break) only removes ${breakingPathOnly.cleared.length ? "paths or clears what an in-range update already clears" : "some paths"}`
+        : p.candidates.length
+          ? `none of the ${p.candidates.length} newer releases tried clears any`
+          : "no newer non-deprecated release";
       plan.push({
         ...base,
         status: "no-fix",
@@ -1020,11 +1278,19 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         worst: worstOf(chosen.cleared.map((c) => c.vuln.severity)),
       },
       remaining: chosen.remaining.map((a) => ({ ...a, after: a.after && sanitize(a.after, 320) })),
+      paths: pathsOf(chosen.pathsTotal, chosen.pathsAfter),
+      stillReachedVia: reachedVia(p.group, chosen.remaining),
       breakingAlternative: alternative ? sanitize(alternative.version, 100) : undefined,
       alsoUpdate: chosen.alsoUpdate.length ? chosen.alsoUpdate : undefined,
       unresolved: chosen.unresolved.length ? chosen.unresolved : undefined,
       heldByOverride: heldByOverride(chosen.remaining),
     };
+    // A package the upgrade adds that could not be checked: the upgrade stays, marked as unverified.
+    const unchecked = chosen.added.filter((a) => a.unchecked).map((a) => ({ name: sanitize(a.name, 214), reason: sanitize(a.unchecked as string, 200) }));
+    if (unchecked.length) {
+      entry.unchecked = unchecked;
+      entry.reason = `adds ${unchecked.slice(0, 3).map((u) => u.name).join(", ")}${unchecked.length > 3 ? ", ..." : ""}, which could not be checked (${unchecked[0]?.reason})`;
+    }
     plan.push(entry);
     chosenByEntry.set(entry, { group: p.group, paths: p.paths ?? [], evaluation: chosen });
   }
@@ -1371,6 +1637,9 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
   const installedNames = new Set(safeInstalls.flatMap((i) => [i.name, i.key]));
   const safeUpdate = new Set(safe.flatMap((u) => u.entries.flatMap((e) => e.alsoUpdate ?? [])));
   const refreshNames = new Set<string>();
+  // An install moves only the locations it names; `npm update <name>` still refreshes the other
+  // copies of that name, so the name is left out of the update only when every copy moves.
+  const fullyInstalled = (name: string) => installedNames.has(name) && (pathsNamed.get(name) ?? []).every((p) => safeChanges.has(p) || !canUpdate(nodeAt(p)));
   // npm update matches the folder name, so an aliased copy cannot be named in it.
   const canUpdate = (n: GraphNode) => isPublic(n) && !n.bundled && !pinned.has(n.path) && keyOf(n.path) === n.name;
   const scenarioWith = (update: Set<string>): Scenario => ({ changes: safeChanges, update, refreshChanged: false });
@@ -1420,7 +1689,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
           if (!verdict.unresolved && verdict.cleared.length >= bestCleared) bestNames.delete(name);
         }
       }
-      for (const name of bestNames) if (!installedNames.has(name)) refreshNames.add(name);
+      for (const name of bestNames) if (!fullyInstalled(name)) refreshNames.add(name);
     }
   }
   for (const name of safeUpdate) refreshNames.delete(name);
@@ -1475,7 +1744,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       });
       const outcomes = group.targets.map((t) => resolver.outcome(t));
       resolver.assumed.delete(group.direct.name);
-      redo.push({ entry, keep, candidate: { version: evaluation.version, breaking: evaluation.breaking, outcomes, assumed: [...resolver.assumed] } });
+      redo.push({ entry, keep, candidate: { version: evaluation.version, breaking: evaluation.breaking, outcomes, assumed: [...resolver.assumed], added: evaluation.added } });
     }
     await checkOsv(
       redo.flatMap(({ entry, candidate }) => {
@@ -1493,6 +1762,8 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
         worst: worstOf(evaluation.cleared.map((c) => c.vuln.severity)),
       };
       entry.remaining = evaluation.remaining.map((a) => ({ ...a, after: a.after && sanitize(a.after, 320) }));
+      entry.paths = pathsOf(evaluation.pathsTotal, evaluation.pathsAfter);
+      entry.stillReachedVia = reachedVia(chosen.group, evaluation.remaining);
       entry.unresolved = evaluation.unresolved.length ? evaluation.unresolved : undefined;
       entry.heldByOverride = held.length ? [...new Set(held.map((t) => t.name))].sort() : undefined;
       entry.alsoUpdate = [...new Set([...evaluation.alsoUpdate, ...keep])].sort();
@@ -1555,6 +1826,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
   const verdicts = new Map(targets.map((t) => [t, judge(t, combinedOutcomes.get(t) as Outcome, true)]));
   const clearedBy = (list: Target[]) => list.flatMap((t) => (verdicts.get(t)?.cleared ?? []).map((v) => ({ t, v })));
   const safeCleared = clearedBy(targets);
+  for (const { t, v } of safeCleared) committed.add(`${t.id}\u0000${v.id}`);
   // What the upgrades in the safe step clear on their own; the rest is the refresh's doing.
   const byUpgrade = new Set<string>();
   for (const [entry, { evaluation }] of chosenByEntry) {
@@ -1618,7 +1890,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     if (!isValidNpmName(name)) refused.add(sanitize(name, 240));
     return isValidNpmName(name);
   };
-  const updateList = [...allUpdate()].filter((n) => !installedNames.has(n) && acceptedName(n)).sort();
+  const updateList = [...allUpdate()].filter((n) => !fullyInstalled(n) && acceptedName(n)).sort();
   if (safeInstalls.length || updateList.length || held.length) {
     const args = argsOf(safeInstalls);
     const runs = args.install.length > 0 || Boolean(args.workspaceInstall) || updateList.length > 0;
@@ -1637,6 +1909,7 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
       clears: {
         count: safeCleared.length,
         total,
+        pathsFixed: targets.reduce((n, t) => n + Math.max(0, t.pathCount - Math.min(t.pathCount, verdicts.get(t)?.pathsAfter ?? t.pathCount)), 0),
         packages: [...new Set(safeCleared.map(({ t }) => t.id))],
         worst: worstOf(safeCleared.map(({ v }) => v.severity)),
       },
@@ -1712,7 +1985,77 @@ export async function buildPlan(input: PlanInput): Promise<PlanResult> {
     } else cmd.legacyPeerDeps = true;
   }
   commands.push(...separate.map((s) => s.command));
-  return { plan, commands, refresh, warnings, requests };
+
+  // A direct dependency that the plan upgrades too is not a route that stays open.
+  {
+    const upgraded = new Set(plan.filter((e) => e.status === "upgrade").map((e) => sanitize(e.name, 214)));
+    for (const e of plan) {
+      if (!e.stillReachedVia) continue;
+      const left = e.stillReachedVia.filter((n) => !upgraded.has(n));
+      e.stillReachedVia = left.length ? left : undefined;
+    }
+  }
+
+  // Project-wide: every upgrade of the plan and the in-range updates applied together. A package
+  // that two direct dependencies share can lose a path to one upgrade and stay open through the other.
+  let planSummary: PlanSummary | undefined;
+  if (chosenByEntry.size || refresh) {
+    const changes = new Map<string, string>();
+    const update = new Set(allUpdate());
+    for (const [entry, { paths, evaluation }] of chosenByEntry) {
+      for (const p of paths) changes.set(p, evaluation.version);
+      for (const n of entry.alsoUpdate ?? []) if (!heldNames.has(n) && isValidNpmName(n)) update.add(n);
+    }
+    const final = makeResolver({ changes, update, refreshChanged: false });
+    const outcomes = new Map(targets.map((t) => [t, final.outcome(t)]));
+    await checkOsv(targets.flatMap((t) => refsOf(t, outcomes.get(t) as Outcome)));
+    const judged = targets.map((t) => ({ t, v: judge(t, outcomes.get(t) as Outcome, true) }));
+    const pathsTotal = targets.reduce((n, t) => n + t.pathCount, 0);
+    const pathsAfter = judged.reduce((n, { t, v }) => n + Math.min(t.pathCount, v.pathsAfter), 0);
+    // An entry's open advisories are judged with the whole plan applied: what another upgrade or
+    // an in-range update closes is not listed as open (`paths` stays per entry).
+    const stillOpen = new Set(judged.flatMap(({ v }) => v.remaining.filter((a) => !a.introduced).map((a) => `${a.package}\u0000${a.id}`)));
+    for (const entry of chosenByEntry.keys()) {
+      if (entry.status !== "upgrade") continue;
+      entry.remaining = entry.remaining.filter((a) => a.introduced || stillOpen.has(`${a.package}\u0000${a.id}`));
+      if (!entry.remaining.length) entry.stillReachedVia = undefined;
+    }
+    // Advisories by package version and id, like the report's own count: present before and gone
+    // after is eliminated, absent before and present after is introduced.
+    const before = new Set<string>();
+    const after = new Set<string>();
+    for (const t of targets) {
+      const o = outcomes.get(t) as Outcome;
+      for (const vuln of t.finding.vulnerabilities) {
+        before.add(`${t.id}\u0000${vuln.id}`);
+        if (o.unknown) after.add(`${t.id}\u0000${vuln.id}`);
+        for (const v of o.versions) if (hitBy(t, v, vuln.id)) after.add(`${t.name}@${v}\u0000${vuln.id}`);
+      }
+      if (!o.unknown) {
+        for (const v of o.versions) {
+          if (v === t.version) continue;
+          for (const x of osvResults.get(`${t.name}@${v}`) ?? []) after.add(`${t.name}@${v}\u0000${x.id}`);
+        }
+      }
+    }
+    // Packages the chosen upgrades add.
+    for (const { evaluation } of chosenByEntry.values()) {
+      for (const a of evaluation.added) {
+        if (!a.version) continue;
+        for (const x of osvResults.get(`${a.name}@${a.version}`) ?? []) after.add(`${a.name}@${a.version}\u0000${x.id}`);
+      }
+    }
+    const introduced = [...after].filter((k) => !before.has(k)).length;
+    planSummary = {
+      pathsTotal,
+      pathsFixed: pathsTotal - pathsAfter,
+      pathsRemaining: pathsAfter,
+      advisoriesTotal: total,
+      advisoriesEliminated: [...before].filter((k) => !after.has(k)).length,
+      ...(introduced ? { advisoriesIntroduced: introduced } : {}),
+    };
+  }
+  return { result: { plan, commands, refresh, planSummary, warnings, requests }, demoted, committed };
 }
 
 /**
